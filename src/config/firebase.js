@@ -1,19 +1,23 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAzVpy7ZgbnI6emH5f48JHhbj2hVRH_PFg",
-  authDomain: "quip-664c9.firebaseapp.com",
-  databaseURL: "https://quip-664c9-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "quip-664c9",
-  storageBucket: "quip-664c9.firebasestorage.app",
-  messagingSenderId: "331394964996",
-  appId: "1:331394964996:web:9e120780791c199cbe5f51",
-  measurementId: "G-B4M647WXVQ"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
-export const firestore = getFirestore(app);
+export const db = getFirestore(app);
+export const realtimeDb = getDatabase(app);
+
 export default app;

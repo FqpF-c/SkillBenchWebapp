@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import FirebaseAuthService from '../services/FirebaseAuthService';
-import FirestoreService from '../services/FirestoreService';
+import FirebaseRealtimeService from '../services/FirebaseRealtimeService';
 
 const AuthContext = createContext();
 
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const phoneNumber = localStorage.getItem('phoneNumber');
           if (phoneNumber) {
-            const userData = await FirestoreService.getUserData(phoneNumber);
+            const userData = await FirebaseRealtimeService.getUserData(phoneNumber);
             if (userData) {
               setUser(userData);
             }
@@ -60,10 +60,10 @@ export const AuthProvider = ({ children }) => {
       
       if (result.success) {
         const phoneNumber = localStorage.getItem('phoneNumber');
-        const userExists = await FirestoreService.checkUserExists(phoneNumber);
+        const userExists = await FirebaseRealtimeService.checkUserExists(phoneNumber);
         
         if (userExists) {
-          const userData = await FirestoreService.getUserData(phoneNumber);
+          const userData = await FirebaseRealtimeService.getUserData(phoneNumber);
           setUser(userData);
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('userData', JSON.stringify(userData));
@@ -92,13 +92,13 @@ export const AuthProvider = ({ children }) => {
         xp: 20
       };
 
-      const result = await FirestoreService.registerUser(phoneNumber, registrationData);
+      const result = await FirebaseRealtimeService.setUserData(phoneNumber, registrationData);
       
       if (result.success) {
-        const completeUserData = await FirestoreService.getUserData(phoneNumber);
-        setUser(completeUserData);
+        const newUserData = await FirebaseRealtimeService.getUserData(phoneNumber);
+        setUser(newUserData);
         localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userData', JSON.stringify(completeUserData));
+        localStorage.setItem('userData', JSON.stringify(newUserData));
       }
       
       return result;
@@ -108,27 +108,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      await FirebaseAuthService.signOut();
-      setUser(null);
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  };
-
   const updateUserStats = async (stats) => {
     try {
       const phoneNumber = localStorage.getItem('phoneNumber');
-      if (!phoneNumber) return;
-
-      await FirestoreService.updateUserStats(phoneNumber, stats);
+      if (!phoneNumber) return { success: false, error: 'No phone number found' };
       
-      const updatedUserData = await FirestoreService.getUserData(phoneNumber);
-      setUser(updatedUserData);
-      localStorage.setItem('userData', JSON.stringify(updatedUserData));
+      const result = await FirebaseRealtimeService.updateUserStats(phoneNumber, stats);
+      
+      if (result.success) {
+        const updatedUserData = await FirebaseRealtimeService.getUserData(phoneNumber);
+        setUser(updatedUserData);
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error updating user stats:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await FirebaseAuthService.signOut();
+      setUser(null);
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userData');
+      localStorage.removeItem('phoneNumber');
+      return { success: true };
+    } catch (error) {
+      console.error('Error signing out:', error);
+      return { success: false, error: error.message };
     }
   };
 
@@ -138,8 +147,9 @@ export const AuthProvider = ({ children }) => {
     sendOTP,
     verifyOTP,
     registerUser,
-    logout,
-    updateUserStats
+    updateUserStats,
+    signOut,
+    isAuthenticated: !!user
   };
 
   return (
