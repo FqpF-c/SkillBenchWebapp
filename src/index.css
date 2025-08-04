@@ -1,0 +1,37 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Inter, system-ui, sans-serif;
+  margin: 0;
+  background-color: #FDFBFF;
+}
+
+/* Custom utility classes for your app */
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100;
+  }
+  
+  .gradient-purple {
+    background: linear-gradient(135deg, #341B58 0%, #4A1E69 100%);
+  }
+  
+  .gradient-pink {
+    background: linear-gradient(135deg, #DF678C 0%, #E57896 100%);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, #341B58 0%, #DF678C 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .container-padding {
+    @apply px-6 py-4;
+  }
+}
