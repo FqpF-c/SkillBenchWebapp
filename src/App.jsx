@@ -1,4 +1,5 @@
-﻿import React from 'react'
+﻿// src/App.jsx - Updated with Firebase Auth
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/common/Layout'
@@ -8,35 +9,38 @@ import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
+import { FirebaseAuthProvider } from './context/FirebaseAuthContext'
 
 function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <Router>
-          <div className="min-h-screen bg-background">
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/academics" element={<Academics />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/profile" element={<Profile />} />
-              </Routes>
-            </Layout>
-            <Toaster 
-              position="top-center"
-              toastOptions={{
-                duration: 3000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-              }}
-            />
-          </div>
-        </Router>
-      </AppProvider>
-    </AuthProvider>
+    <FirebaseAuthProvider>
+      <AuthProvider>
+        <AppProvider>
+          <Router>
+            <div className="min-h-screen bg-background">
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/academics" element={<Academics />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Routes>
+              </Layout>
+              <Toaster 
+                position="top-center"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
+                  },
+                }}
+              />
+            </div>
+          </Router>
+        </AppProvider>
+      </AuthProvider>
+    </FirebaseAuthProvider>
   )
 }
 
