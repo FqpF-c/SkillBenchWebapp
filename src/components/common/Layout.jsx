@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 
 const Layout = ({ children }) => {
   return (
-    <div className="flex min-h-screen bg-softbg">
+    <div className="flex min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
       <Sidebar />
       <main className="flex-1 max-w-screen-xl mx-auto p-8 overflow-y-auto">
         {children}

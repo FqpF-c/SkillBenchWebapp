@@ -1,29 +1,19 @@
-// src/config/firebase.js
-// Firebase configuration that matches your Flutter app setup
-
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
-// Your Firebase configuration
-// Based on your firebase.json configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDYourActualAPIKeyHere", // You'll need to get this from Firebase Console
+  apiKey: "AIzaSyAzVpy7ZgbnI6emH5f48JHhbj2hVRH_PFg",
   authDomain: "quip-664c9.firebaseapp.com",
-  databaseURL: "https://quip-664c9-default-rtdb.firebaseio.com",
+  databaseURL: "https://quip-664c9-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "quip-664c9",
-  storageBucket: "quip-664c9.appspot.com",
+  storageBucket: "quip-664c9.firebasestorage.app",
   messagingSenderId: "331394964996",
-  appId: "1:331394964996:web:4492900dfc8d9433be5f51"
+  appId: "1:331394964996:web:9e120780791c199cbe5f51",
+  measurementId: "G-B4M647WXVQ"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase services
-export const db = getFirestore(app); // Firestore database
-export const rtdb = getDatabase(app); // Realtime database  
-export const auth = getAuth(app); // Authentication
-
+export const auth = getAuth(app);
+export const firestore = getFirestore(app);
 export default app;
