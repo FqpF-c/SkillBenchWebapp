@@ -12,6 +12,7 @@ import {
   Target,
   Clock
 } from 'lucide-react';
+import ModeSelectionModal from '../components/modals/ModeSelectionModal';
 
 const ListTopicsScreen = () => {
   const { categoryId } = useParams();
@@ -31,6 +32,8 @@ const ListTopicsScreen = () => {
   const [subcategoryProgressCache, setSubcategoryProgressCache] = useState({});
   const [overallProgress, setOverallProgress] = useState(0);
   const [bestScore, setBestScore] = useState(0);
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [showModeSelection, setShowModeSelection] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -186,7 +189,41 @@ const ListTopicsScreen = () => {
   };
 
   const handleTopicSelection = (subcategory, topic) => {
-    console.log(`Selected topic: ${topic} from ${subcategory}`);
+    setSelectedTopic({
+      topicName: topic,
+      subcategoryName: subcategory,
+      type: 'programming',
+      categoryId: categoryName,
+      subcategory: subcategory,
+      topic: topic
+    });
+    setShowModeSelection(true);
+  };
+
+  const handleModeSelection = (mode) => {
+    console.log(`Selected ${mode} mode for:`, selectedTopic);
+    
+    const quizParams = {
+      mainTopic: categoryName,
+      programmingLanguage: selectedTopic.topic,
+      subTopic: selectedTopic.subcategoryName,
+      categoryId: selectedTopic.categoryId,
+      subcategory: selectedTopic.subcategoryName,
+      topic: selectedTopic.topicName
+    };
+
+    navigate('/quiz-loading', {
+      state: {
+        mode,
+        type: selectedTopic.type,
+        quizParams,
+        topicName: selectedTopic.topicName,
+        subtopicName: selectedTopic.subcategoryName
+      }
+    });
+    
+    setShowModeSelection(false);
+    setSelectedTopic(null);
   };
 
   const renderSubcategoryHeader = (subcategory) => {
@@ -360,6 +397,16 @@ const ListTopicsScreen = () => {
           </div>
         ))}
       </div>
+
+      {/* Mode Selection Modal */}
+      {showModeSelection && selectedTopic && (
+        <ModeSelectionModal
+          isOpen={showModeSelection}
+          onClose={() => setShowModeSelection(false)}
+          topicData={selectedTopic}
+          onModeSelect={handleModeSelection}
+        />
+      )}
     </div>
   );
 };

@@ -7,6 +7,7 @@ import Academics from './pages/Academics'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
 import ListTopicsScreen from './pages/ListTopicsScreen'
+import QuizLoadingScreen from './pages/QuizLoadingScreen'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
 
@@ -23,6 +24,7 @@ function App() {
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/list-topics/:categoryId" element={<ListTopicsScreen />} />
+                <Route path="/quiz-loading" element={<QuizLoadingScreen />} />
               </Routes>
             </Layout>
             <Toaster 

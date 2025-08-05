@@ -1,11 +1,12 @@
 import React from 'react';
 import { X, Dumbbell, FileText, ArrowRight, Clock, Target, Zap } from 'lucide-react';
 
-const ModeSelector = ({ isOpen, onClose, topicName, subcategoryName, type = 'academic' }) => {
+const ModeSelectionModal = ({ isOpen, onClose, topicData, onModeSelect }) => {
   if (!isOpen) return null;
 
   const handleModeSelection = (mode) => {
-    console.log(`${mode} mode selected for ${topicName} - ${subcategoryName}`);
+    console.log(`${mode} mode selected for ${topicData.topicName} - ${topicData.subcategoryName}`);
+    onModeSelect(mode);
     onClose();
   };
 
@@ -38,16 +39,16 @@ const ModeSelector = ({ isOpen, onClose, topicName, subcategoryName, type = 'aca
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
       <div className="bg-white rounded-t-3xl w-full max-w-md max-h-[85vh] overflow-y-auto">
         <div className="flex justify-center pt-4 pb-6">
-          <div className="w-12 h-1.5 bg-secondary rounded-full" />
+          <div className="w-12 h-1.5 bg-purple-300 rounded-full" />
         </div>
 
         <div className="px-6 pb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-primary mb-1">Select Mode</h2>
-              <p className="text-sm text-gray-600">{topicName}</p>
-              {subcategoryName && (
-                <p className="text-sm text-gray-500">{subcategoryName}</p>
+              <h2 className="text-2xl font-bold text-purple-700 mb-1">Select Mode</h2>
+              <p className="text-sm text-gray-600">{topicData.topicName}</p>
+              {topicData.subcategoryName && (
+                <p className="text-sm text-gray-500">{topicData.subcategoryName}</p>
               )}
             </div>
             <button
@@ -65,7 +66,7 @@ const ModeSelector = ({ isOpen, onClose, topicName, subcategoryName, type = 'aca
               return (
                 <div
                   key={mode.id}
-                  className={`card border-2 ${mode.borderColor} hover:border-secondary/50 transition-all duration-300 cursor-pointer group overflow-hidden`}
+                  className={`border-2 ${mode.borderColor} hover:border-purple-300 transition-all duration-300 cursor-pointer group overflow-hidden rounded-2xl`}
                   onClick={() => handleModeSelection(mode.id)}
                 >
                   <div className="p-6">
@@ -74,14 +75,14 @@ const ModeSelector = ({ isOpen, onClose, topicName, subcategoryName, type = 'aca
                         <Icon className={mode.color} size={24} />
                       </div>
                       <div className="flex-1">
-                        <h3 className={`text-lg font-semibold ${mode.color} group-hover:text-secondary transition-colors`}>
+                        <h3 className={`text-lg font-semibold ${mode.color} group-hover:text-purple-600 transition-colors`}>
                           {mode.title}
                         </h3>
                         <p className="text-gray-600 text-sm mt-1">
                           {mode.description}
                         </p>
                       </div>
-                      <ArrowRight className="text-gray-400 group-hover:text-secondary group-hover:translate-x-1 transition-all" size={20} />
+                      <ArrowRight className="text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" size={20} />
                     </div>
 
                     <div className="space-y-2 mb-4">
@@ -114,7 +115,7 @@ const ModeSelector = ({ isOpen, onClose, topicName, subcategoryName, type = 'aca
                     </button>
                   </div>
 
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 </div>
               );
             })}
@@ -137,4 +138,4 @@ const ModeSelector = ({ isOpen, onClose, topicName, subcategoryName, type = 'aca
   );
 };
 
-export default ModeSelector;
+export default ModeSelectionModal;

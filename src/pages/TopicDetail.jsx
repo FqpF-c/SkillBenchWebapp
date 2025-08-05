@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronUp, PlayCircle, TrendingUp, Award, Clock } from 'lucide-react';
-import ModeSelector from '../components/modals/ModeSelector';
+import ModeSelector from '../components/modals/ModeSelectionModal';
 import { usePrepData } from '../hooks/usePrepData';
 import TopicItem from '../components/topic/TopicItem';
 
