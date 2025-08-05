@@ -12,6 +12,7 @@ const QuizLoadingScreen = () => {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
+  const [hasGenerated, setHasGenerated] = useState(false);
 
   const practiceLoadingMessages = [
     "Initializing practice session...",
@@ -40,9 +41,13 @@ const QuizLoadingScreen = () => {
       return;
     }
 
-    startQuizGeneration();
-    startLoadingAnimation();
-  }, [mode, type, quizParams]);
+    // Only start generation once
+    if (!hasGenerated && !isGenerating) {
+      setHasGenerated(true);
+      startQuizGeneration();
+      startLoadingAnimation();
+    }
+  }, []); // Empty dependency array to run only once
 
   const startLoadingAnimation = () => {
     const stepDuration = mode === 'test' ? 3000 : 3000;
@@ -63,6 +68,8 @@ const QuizLoadingScreen = () => {
   };
 
   const startQuizGeneration = async () => {
+    if (isGenerating) return; // Prevent multiple calls
+    
     setIsGenerating(true);
     setHasError(false);
 
@@ -140,8 +147,12 @@ const QuizLoadingScreen = () => {
 
   const handleRetry = () => {
     setCurrentStep(0);
-    startQuizGeneration();
-    startLoadingAnimation();
+    setHasGenerated(false);
+    setTimeout(() => {
+      setHasGenerated(true);
+      startQuizGeneration();
+      startLoadingAnimation();
+    }, 100);
   };
 
   const handleGoBack = () => {

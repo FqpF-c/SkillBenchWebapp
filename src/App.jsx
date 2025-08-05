@@ -8,6 +8,9 @@ import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
 import ListTopicsScreen from './pages/ListTopicsScreen'
 import QuizLoadingScreen from './pages/QuizLoadingScreen'
+import PracticeModeScreen from './pages/PracticeModeScreen'
+import TestModeScreen from './pages/TestModeScreen'
+import QuizResultScreen from './pages/QuizResultScreen'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
 
@@ -25,6 +28,9 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/list-topics/:categoryId" element={<ListTopicsScreen />} />
                 <Route path="/quiz-loading" element={<QuizLoadingScreen />} />
+                <Route path="/practice-mode" element={<PracticeModeScreen />} />
+                <Route path="/test-mode" element={<TestModeScreen />} />
+                <Route path="/quiz-result" element={<QuizResultScreen />} />
               </Routes>
             </Layout>
             <Toaster 
