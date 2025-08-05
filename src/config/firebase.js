@@ -20,4 +20,15 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const realtimeDb = getDatabase(app);
 
+// Database paths
+export const DB_PATHS = {
+  // Firestore paths
+  USERS: 'skillbench/users/users', // /skillbench/users/users/{phone_number}
+  PREP_TITLE: 'prep/Title',
+  
+  // Realtime Database paths
+  REALTIME_USERS: 'skillbench/users', // /skillbench/users/{current_firebase_uid}
+  REALTIME_PROGRESS: 'skillbench/progress'
+};
+
 export default app;

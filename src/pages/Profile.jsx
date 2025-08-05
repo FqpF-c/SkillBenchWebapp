@@ -3,11 +3,25 @@ import { User, Mail, School, Calendar, LogOut, Settings, Shield, HelpCircle } fr
 import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Are you sure you want to log out?')) {
-      logout();
+      try {
+        console.log('=== Profile: Starting Logout Process ===');
+        const result = await signOut();
+        console.log('Profile: Logout result:', result);
+        
+        if (result.success) {
+          console.log('Profile: Successfully logged out');
+        } else {
+          console.error('Profile: Logout failed:', result.error);
+          alert(`Error signing out: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Profile: Error signing out:', error);
+        alert(`Error signing out: ${error.message}`);
+      }
     }
   };
 

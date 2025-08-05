@@ -1,40 +1,104 @@
-import { useState, useEffect } from 'react';
-import { MOCK_USER_DATA } from '../utils/constants';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import FirebaseService from '../services/firebaseService';
 
-export const useUserData = () => {
-  const [userData, setUserData] = useState(null);
+const useUserData = () => {
+  const { user } = useAuth();
+  const [userStats, setUserStats] = useState({
+    xp: 0,
+    coins: 0,
+    points: 0,
+    study_hours: 0,
+    total_usage: 0,
+    streaks: 0
+  });
+  const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadUserData = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Get user data from both Firestore and Realtime Database
+      // Note: user.phoneNumber might be null for anonymous users or users who signed up with email
+      let phoneNumberToUse = user.phoneNumber;
+      
+      // If no phone number in user object, try to get it from localStorage (for email-based users)
+      if (!phoneNumberToUse) {
+        const storedPhoneNumber = localStorage.getItem('phoneNumber');
+        if (storedPhoneNumber) {
+          phoneNumberToUse = storedPhoneNumber;
+        }
+      }
+      
+      const userData = await FirebaseService.getUserData(
+        user.uid, // Firebase UID for Realtime Database
+        phoneNumberToUse || null // Phone number for Firestore (might be null)
+      );
+
+      if (userData.userStats) {
+        setUserStats(userData.userStats);
+      }
+
+      if (userData.userDetails) {
+        setUserDetails(userData.userDetails);
+      }
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const updateUserStats = useCallback(async (updates) => {
+    if (!user?.uid) {
+      return { success: false, error: 'No user UID available' };
+    }
+
+    try {
+      // Get the current_firebase_uid from user details if available
+      let uidToUse = user.uid; // fallback to Auth UID
+      
+      if (userDetails && userDetails.current_firebase_uid) {
+        uidToUse = userDetails.current_firebase_uid;
+      }
+      
+      const result = await FirebaseService.updateUserStatsByUid(uidToUse, updates);
+      
+      if (result.success) {
+        // Update local state
+        setUserStats(prev => ({ ...prev, ...updates }));
+      }
+      
+      return result;
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }, [user?.uid, userDetails]);
 
   useEffect(() => {
-    // Simulate API call
-    const loadUserData = async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Get data from localStorage or use mock data
-        const savedData = localStorage.getItem('userData');
-        const data = savedData ? JSON.parse(savedData) : MOCK_USER_DATA;
-        
-        setUserData(data);
-      } catch (error) {
-        console.error('Error loading user data:', error);
-        setUserData(MOCK_USER_DATA);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadUserData();
-  }, []);
+  }, [loadUserData]);
 
-  const updateUserData = (updates) => {
-    const updatedData = { ...userData, ...updates };
-    setUserData(updatedData);
-    localStorage.setItem('userData', JSON.stringify(updatedData));
+  return {
+    userStats,
+    userDetails,
+    loading,
+    error,
+    updateUserStats,
+    refreshUserData: loadUserData
   };
-
-  return { userData, loading, updateUserData };
 };
+
+export { useUserData };
 
 // Additional responsive utilities for mobile-first design
 export const BREAKPOINTS = {

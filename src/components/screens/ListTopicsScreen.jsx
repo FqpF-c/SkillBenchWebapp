@@ -12,7 +12,7 @@ import {
   Target,
   Clock
 } from 'lucide-react';
-import ModeSelectionModal from '../modals/ModeSelectionModal';
+import ModeSelectionModal from '../modals/ModeSelector';
 
 const ListTopicsScreen = () => {
   const { categoryId } = useParams();

@@ -1,11 +1,12 @@
-// src/services/firebasePrepService.js - Updated with Auth Check
+// src/services/firebasePrepService.js - Updated with new structure
 import { 
   doc, 
   getDoc, 
   collection,
   getDocs 
 } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { auth, db, DB_PATHS } from '../config/firebase';
+import FirestoreService from './FirestoreService';
 
 class FirebasePrepService {
   constructor() {
@@ -55,7 +56,7 @@ class FirebasePrepService {
       console.log('Current user:', auth.currentUser?.uid);
       
       // Try to read a document from prep collection
-      const testRef = doc(db, 'prep', 'Title');
+      const testRef = doc(db, DB_PATHS.PREP_TITLE, 'Title');
       const testSnap = await getDoc(testRef);
       
       console.log('✅ Firebase connection successful');
@@ -100,37 +101,16 @@ class FirebasePrepService {
     }
 
     try {
-      console.log('🔄 Loading category titles from /prep/Title');
+      console.log('🔄 Loading category titles from FirestoreService');
       
       // Ensure user is authenticated
       await this.waitForAuth();
       
-      const titlesRef = doc(db, 'prep', 'Title');
-      console.log('Document reference created:', titlesRef.path);
-      console.log('Authenticated user:', auth.currentUser?.uid);
+      const titles = await FirestoreService.loadCategoryTitles();
+      console.log('✅ Category titles found:', titles);
       
-      const docSnapshot = await getDoc(titlesRef);
-      console.log('Document snapshot retrieved. Exists:', docSnapshot.exists());
-      
-      if (docSnapshot.exists()) {
-        const data = docSnapshot.data();
-        console.log('Raw document data:', data);
-        
-        if (data && data['Title'] && Array.isArray(data['Title'])) {
-          const titles = data['Title'];
-          console.log('✅ Category titles found:', titles);
-          
-          this.setCacheItem(cacheKey, titles);
-          return titles;
-        } else {
-          console.warn('⚠️ Document exists but Title field is missing or not an array');
-          console.log('Available fields:', Object.keys(data || {}));
-          return [];
-        }
-      } else {
-        console.warn('⚠️ /prep/Title document does not exist');
-        return [];
-      }
+      this.setCacheItem(cacheKey, titles);
+      return titles;
       
     } catch (e) {
       console.error('❌ Error loading category titles:', e);
@@ -149,36 +129,16 @@ class FirebasePrepService {
     }
 
     try {
-      console.log('🔄 Loading display titles from /prep/TitleDisplay');
+      console.log('🔄 Loading display titles from FirestoreService');
       
       // Ensure user is authenticated
       await this.waitForAuth();
       
-      const displayDoc = await getDoc(doc(db, 'prep', 'TitleDisplay'));
-      console.log('TitleDisplay document exists:', displayDoc.exists());
+      const titles = await FirestoreService.loadDisplayTitles();
+      console.log('✅ Display titles processed:', titles);
       
-      if (displayDoc.exists()) {
-        const data = displayDoc.data();
-        console.log('TitleDisplay raw data:', data);
-        
-        const titles = {};
-        
-        for (const [key, value] of Object.entries(data || {})) {
-          if (typeof value === 'string') {
-            titles[key] = value;
-          } else {
-            titles[key] = key;
-          }
-        }
-        
-        console.log('✅ Display titles processed:', titles);
-        
-        this.setCacheItem(cacheKey, titles);
-        return titles;
-      } else {
-        console.warn('⚠️ /prep/TitleDisplay document does not exist');
-        return {};
-      }
+      this.setCacheItem(cacheKey, titles);
+      return titles;
       
     } catch (e) {
       console.error('❌ Error loading display titles:', e);
@@ -201,63 +161,41 @@ class FirebasePrepService {
       // Ensure user is authenticated
       await this.waitForAuth();
       
-      const categoryItemsRef = doc(db, 'prep', 'Title', categoryId, categoryId);
-      console.log('Category items path:', categoryItemsRef.path);
+      const items = await FirestoreService.loadCategoryItems(categoryId);
+      console.log(`✅ Formatted items for ${categoryId}:`, items);
       
-      const docSnapshot = await getDoc(categoryItemsRef);
-      console.log(`${categoryId} document exists:`, docSnapshot.exists());
-      
-      if (docSnapshot.exists()) {
-        const data = docSnapshot.data();
-        console.log(`${categoryId} raw document data:`, data);
-        
-        if (data && data[categoryId] && Array.isArray(data[categoryId])) {
-          const rawItems = data[categoryId];
-          console.log(`Raw items for ${categoryId}:`, rawItems);
-          
-          const formattedItems = [];
-          
-          for (const item of rawItems) {
-            let itemName;
-            let formattedItem;
-            
-            if (typeof item === 'object' && item !== null) {
-              formattedItem = { ...item };
-              itemName = formattedItem['name'] || Object.keys(formattedItem)[0]?.toString() || 'Unknown';
-            } else if (typeof item === 'string') {
-              itemName = item;
-              formattedItem = { 'name': itemName };
-            } else {
-              itemName = item?.toString() || 'Unknown';
-              formattedItem = { 'name': itemName };
-            }
-            
-            formattedItem['iconAsset'] = this.getAssetForTopic(itemName);
-            formattedItem['color'] = this.getColorForTopic(itemName);
-            
-            if (!formattedItem['name']) {
-              formattedItem['name'] = itemName;
-            }
-            
-            formattedItems.push(formattedItem);
-          }
-          
-          console.log(`✅ Formatted items for ${categoryId}:`, formattedItems);
-          
-          this.setCacheItem(cacheKey, formattedItems);
-          return formattedItems;
-        } else {
-          console.warn(`⚠️ Document exists but ${categoryId} field is missing or not an array`);
-          console.log('Available fields:', Object.keys(data || {}));
-          return [];
-        }
-      } else {
-        console.warn(`⚠️ Document /prep/Title/${categoryId}/${categoryId} does not exist`);
-        return [];
-      }
+      this.setCacheItem(cacheKey, items);
+      return items;
       
     } catch (e) {
       console.error(`❌ Error loading items for ${categoryId}:`, e);
+      return [];
+    }
+  }
+
+  // Load topics for a specific subcategory
+  async loadSubcategoryTopics(categoryId, subcategory) {
+    const cacheKey = `subcategory_topics_${categoryId}_${subcategory}`;
+    const cached = this.getCacheItem(cacheKey);
+    if (cached) {
+      console.log(`📦 Using cached topics for ${subcategory}:`, cached);
+      return cached;
+    }
+
+    try {
+      console.log(`🔄 Loading topics for subcategory: ${subcategory}`);
+      
+      // Ensure user is authenticated
+      await this.waitForAuth();
+      
+      const topics = await FirestoreService.loadSubcategoryTopics(categoryId, subcategory);
+      console.log(`✅ Topics for ${subcategory}:`, topics);
+      
+      this.setCacheItem(cacheKey, topics);
+      return topics;
+      
+    } catch (e) {
+      console.error(`❌ Error loading topics for ${subcategory}:`, e);
       return [];
     }
   }
@@ -335,55 +273,6 @@ class FirebasePrepService {
         error: error.message
       };
     }
-  }
-
-  // Helper methods (same as before)
-  getAssetForTopic(topicName) {
-    const normalizedName = topicName.toLowerCase().trim();
-    
-    const topicAssetMap = {
-      'c': '/assets/programming/c.png',
-      'c++': '/assets/programming/cpp.png',
-      'cpp': '/assets/programming/cpp.png',
-      'java': '/assets/programming/java.png',
-      'python': '/assets/programming/python.png',
-      'kotlin': '/assets/programming/kotlin.png',
-      'swift': '/assets/programming/swift.png',
-      'flutter': '/assets/programming/flutter.png',
-      'react': '/assets/programming/react.png',
-      'react native': '/assets/programming/react.png',
-      'web development': '/assets/programming/web_development.png',
-      'web': '/assets/programming/web_development.png',
-      'aws': '/assets/programming/aws.png',
-      'javascript': '/assets/programming/javascript.png',
-      'js': '/assets/programming/javascript.png',
-      'html': '/assets/programming/html.png',
-      'css': '/assets/programming/css.png',
-    };
-    
-    return topicAssetMap[normalizedName] || '/assets/programming/default.png';
-  }
-
-  getColorForTopic(topicName) {
-    const normalizedName = topicName.toLowerCase().trim();
-    
-    const categoryColors = {
-      'c': '#5C6BC0',
-      'c++': '#42A5F5',
-      'java': '#EF5350',
-      'python': '#66BB6A',
-      'kotlin': '#AB47BC',
-      'swift': '#FF7043',
-      'flutter': '#29B6F6',
-      'react': '#26C6DA',
-      'web development': '#26A69A',
-      'aws': '#FF9800',
-      'javascript': '#F7DF1E',
-      'html': '#E34F26',
-      'css': '#1572B6',
-    };
-    
-    return categoryColors[normalizedName] || '#366D9C';
   }
 
   clearCache() {

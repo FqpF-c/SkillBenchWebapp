@@ -5,11 +5,27 @@ import Card from '../common/Card';
 import Button from '../common/Button';
 
 const SettingsCard = () => {
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Are you sure you want to log out?')) {
-      logout();
+      try {
+        console.log('=== Starting Logout Process ===');
+        const result = await signOut();
+        console.log('Logout result:', result);
+        
+        if (result.success) {
+          console.log('Successfully logged out');
+          // The AuthContext will handle the state change automatically
+          // The ProtectedRoute component will redirect to login
+        } else {
+          console.error('Logout failed:', result.error);
+          alert(`Error signing out: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Error signing out:', error);
+        alert(`Error signing out: ${error.message}`);
+      }
     }
   };
 

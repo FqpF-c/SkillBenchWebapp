@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 const Card = ({ 
   children, 
@@ -8,20 +7,17 @@ const Card = ({
   onClick,
   ...props 
 }) => {
-  const baseStyles = 'card p-6';
-  const hoverStyles = hover ? 'hover:shadow-lg hover:scale-105 cursor-pointer' : '';
+  const baseStyles = 'bg-white rounded-2xl shadow-lg border border-gray-100 p-6';
+  const hoverStyles = hover ? 'hover:shadow-xl hover:scale-105 cursor-pointer transition-all duration-300' : '';
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+    <div
       className={`${baseStyles} ${hoverStyles} ${className}`}
       onClick={onClick}
       {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 

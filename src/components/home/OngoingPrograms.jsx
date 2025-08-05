@@ -1,258 +1,224 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, TrendingUp, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Play, TrendingUp, Clock, Award, ChevronRight } from 'lucide-react';
 
-const OngoingPrograms = ({ categoryItems, getAssetForTopic, getColorForTopic }) => {
-  const [ongoingPrograms, setOngoingPrograms] = useState([]);
+const OngoingPrograms = () => {
+  const navigate = useNavigate();
+  const [programs, setPrograms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadOngoingPrograms();
-  }, [categoryItems]);
-
-  const extractTopicNameFromId = (topicId) => {
-    const parts = topicId.split('_');
-    
-    if (parts.length >= 3) {
-      if (parts[0] === 'programminglanguage' || parts[0] === 'programming') {
-        const language = parts[1];
-        const topic = parts.length > 2 ? parts.slice(2).join(' ') : language;
-        const readableLanguage = capitalizeWords(language);
-        
-        if (topic.toLowerCase().replace(/[^a-z]/g, '') === language.toLowerCase().replace(/[^a-z]/g, '')) {
-          return readableLanguage;
-        }
-        
-        if (topic.length > language.length + 2) {
-          const readableTopic = capitalizeWords(topic);
-          return `${readableLanguage} - ${readableTopic}`;
-        }
-        
-        return readableLanguage;
-      }
-    }
-    
-    return capitalizeWords(topicId.replace(/_/g, ' '));
-  };
-
-  const capitalizeWords = (input) => {
-    if (!input) return input;
-    
-    const spaced = input.replace(/([a-z])([A-Z])/g, '$1 $2');
-    
-    return spaced.split(/[_\s-]+/).map(word => {
-      if (!word) return word;
-      return word[0].toUpperCase() + word.substring(1).toLowerCase();
-    }).join(' ');
-  };
+  }, []);
 
   const loadOngoingPrograms = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const progressData = JSON.parse(localStorage.getItem('userProgress') || '{}');
-      
-      const groupedTopics = {};
-      
-      Object.entries(progressData).forEach(([topicId, data]) => {
-        const progress = (data.progress || 0) / 100;
-        
-        if (progress > 0) {
-          const categoryId = data.categoryId || '';
-          const mainTopic = data.mainTopic || '';
-          const subcategory = data.subcategory || '';
-          const programmingLanguage = data.programmingLanguage || '';
-          const lastUpdated = data.lastUpdated || 0;
-          const bestScore = data.bestScore || 0;
-          const totalQuestions = data.totalQuestions || 0;
-          const totalCorrectAnswers = data.totalCorrectAnswers || 0;
-          
-          let displayName = '';
-          let groupKey = '';
-          
-          if (programmingLanguage && programmingLanguage !== 'Unknown') {
-            displayName = capitalizeWords(programmingLanguage);
-            groupKey = `programming_${programmingLanguage.toLowerCase()}`;
-          } else if (mainTopic && mainTopic !== 'Unknown') {
-            displayName = capitalizeWords(mainTopic);
-            groupKey = `topic_${mainTopic.toLowerCase()}`;
-          } else {
-            displayName = extractTopicNameFromId(topicId);
-            groupKey = `other_${displayName.toLowerCase().replace(/\s+/g, '_')}`;
-          }
-          
-          if (groupedTopics[groupKey]) {
-            const existing = groupedTopics[groupKey];
-            const subtopicCount = existing.subtopicCount || 1;
-            const existingProgress = existing.aggregatedProgress || 0;
-            const newTotalQuestions = existing.totalQuestions + totalQuestions;
-            
-            let newProgress;
-            if (subtopicCount === 1) {
-              newProgress = (existingProgress + progress) / 2;
-            } else {
-              newProgress = ((existingProgress * subtopicCount) + progress) / (subtopicCount + 1);
-            }
-            
-            existing.aggregatedProgress = newProgress;
-            existing.totalQuestions = newTotalQuestions;
-            existing.totalCorrectAnswers = existing.totalCorrectAnswers + totalCorrectAnswers;
-            existing.bestScore = Math.max(existing.bestScore, bestScore);
-            existing.lastUpdated = Math.max(existing.lastUpdated, lastUpdated);
-            existing.subtopicCount = subtopicCount + 1;
-          } else {
-            groupedTopics[groupKey] = {
-              name: displayName,
-              categoryId: categoryId,
-              aggregatedProgress: progress,
-              icon: getAssetForTopic(displayName),
-              color: getColorForTopic(displayName),
-              lastUpdated: lastUpdated,
-              bestScore: bestScore,
-              totalQuestions: totalQuestions,
-              totalCorrectAnswers: totalCorrectAnswers,
-              groupKey: groupKey,
-              subtopicCount: 1,
-              originalTopicId: topicId
-            };
-          }
+      const mockPrograms = [
+        {
+          name: 'React Components',
+          category: 'Web Development',
+          subcategory: 'Frontend Frameworks',
+          progress: 75,
+          lastStudied: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          totalHours: 12,
+          bestScore: 85,
+          color: 'from-blue-400 to-blue-600'
+        },
+        {
+          name: 'Python Basics',
+          category: 'Programming Language',
+          subcategory: 'Backend Development',
+          progress: 45,
+          lastStudied: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+          totalHours: 8,
+          bestScore: 72,
+          color: 'from-green-400 to-green-600'
+        },
+        {
+          name: 'MongoDB Queries',
+          category: 'Database',
+          subcategory: 'NoSQL Databases',
+          progress: 60,
+          lastStudied: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+          totalHours: 15,
+          bestScore: 91,
+          color: 'from-emerald-400 to-emerald-600'
+        },
+        {
+          name: 'Flutter Widgets',
+          category: 'App Development',
+          subcategory: 'Mobile Development',
+          progress: 30,
+          lastStudied: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+          totalHours: 6,
+          bestScore: 68,
+          color: 'from-purple-400 to-purple-600'
+        },
+        {
+          name: 'AWS Lambda',
+          category: 'Cloud Computing',
+          subcategory: 'Serverless Computing',
+          progress: 85,
+          lastStudied: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+          totalHours: 20,
+          bestScore: 94,
+          color: 'from-orange-400 to-orange-600'
         }
-      });
+      ];
       
-      const progressList = Object.values(groupedTopics);
-      progressList.sort((a, b) => b.lastUpdated - a.lastUpdated);
-      
-      setOngoingPrograms(progressList.slice(0, 6));
+      setPrograms(mockPrograms);
     } catch (error) {
       console.error('Error loading ongoing programs:', error);
-      setDefaultPrograms();
     } finally {
       setIsLoading(false);
     }
   };
 
-  const setDefaultPrograms = () => {
-    const defaultPrograms = [
-      {
-        name: 'Web Development',
-        aggregatedProgress: 0.75,
-        icon: getAssetForTopic('Web Development'),
-        color: getColorForTopic('Web Development'),
-        bestScore: 85,
-        totalQuestions: 120
-      },
-      {
-        name: 'Python',
-        aggregatedProgress: 0.60,
-        icon: getAssetForTopic('Python'),
-        color: getColorForTopic('Python'),
-        bestScore: 92,
-        totalQuestions: 98
-      },
-      {
-        name: 'JavaScript',
-        aggregatedProgress: 0.45,
-        icon: getAssetForTopic('JavaScript'),
-        color: getColorForTopic('JavaScript'),
-        bestScore: 78,
-        totalQuestions: 67
-      }
-    ];
+  const handleProgramClick = (program) => {
+    const categoryId = encodeURIComponent(program.category);
+    const subcategoryName = encodeURIComponent(program.subcategory);
+    const topicName = encodeURIComponent(program.name);
     
-    setOngoingPrograms(defaultPrograms);
+    navigate(`/topic/${categoryId}/${subcategoryName}/${topicName}`);
   };
 
-  const handleProgramClick = (program) => {
-    console.log('Navigate to program:', program);
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays} days ago`;
   };
 
   if (isLoading) {
     return (
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Ongoing Programs</h2>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="min-w-80 bg-gray-200 rounded-2xl h-40 animate-pulse"></div>
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold text-gray-900">Ongoing Programs</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="card animate-pulse">
+              <div className="p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 bg-gray-300 rounded-xl"></div>
+                  <div className="w-16 h-6 bg-gray-300 rounded"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="w-3/4 h-5 bg-gray-300 rounded"></div>
+                  <div className="w-1/2 h-4 bg-gray-300 rounded"></div>
+                </div>
+                <div className="w-full h-2 bg-gray-300 rounded"></div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
     );
   }
 
-  if (ongoingPrograms.length === 0) {
-    return (
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Ongoing Programs</h2>
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 text-center border border-gray-200">
-          <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="text-gray-600" size={24} />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Ongoing Programs</h3>
-          <p className="text-gray-600">Start learning to see your progress here!</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mb-8">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Ongoing Programs</h2>
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {ongoingPrograms.map((program, index) => (
-          <div
-            key={index}
-            onClick={() => handleProgramClick(program)}
-            className="min-w-80 bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer group"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
-                  style={{ backgroundColor: program.color }}
-                >
-                  {program.name[0]}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
-                    {program.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {Math.round(program.aggregatedProgress * 100)}% Complete
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-amber-500">
-                <Star size={16} fill="currentColor" />
-                <span className="text-sm font-medium">{program.bestScore || 0}</span>
-              </div>
-            </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Ongoing Programs</h2>
+          <p className="text-gray-600 mt-1">Continue where you left off</p>
+        </div>
+        <button className="btn btn-secondary text-sm px-4 py-2">
+          View All
+        </button>
+      </div>
 
-            <div className="mb-4">
-              <div className="flex justify-between text-sm text-gray-600 mb-2">
-                <span>Progress</span>
-                <span>{Math.round(program.aggregatedProgress * 100)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${program.aggregatedProgress * 100}%`,
-                    backgroundColor: program.color 
-                  }}
-                ></div>
-              </div>
+      {programs.length === 0 ? (
+        <div className="card">
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Play className="text-gray-400" size={24} />
             </div>
+            <h3 className="font-semibold text-gray-900 mb-2">No ongoing programs</h3>
+            <p className="text-gray-600 text-sm">Start learning to see your progress here</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {programs.map((program, index) => (
+            <div
+              key={index}
+              className="card hover:shadow-lg transition-all duration-300 cursor-pointer group border border-gray-100 hover:border-secondary/30"
+              onClick={() => handleProgramClick(program)}
+            >
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-12 h-12 bg-gradient-to-r ${program.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <Play className="text-white" size={16} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500">
+                      {program.progress}%
+                    </span>
+                    <ChevronRight className="text-gray-400 group-hover:text-secondary group-hover:translate-x-1 transition-all" size={16} />
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <div className="flex items-center gap-1">
-                <TrendingUp size={14} />
-                <span>{program.totalQuestions || 0} Questions</span>
+                <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-secondary transition-colors">
+                  {program.name}
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">{program.category}</p>
+
+                <div className="space-y-3">
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full bg-gradient-to-r ${program.color} rounded-full transition-all duration-500`}
+                      style={{ width: `${program.progress}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <Clock size={12} />
+                      <span>{program.totalHours}h</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Award size={12} />
+                      <span>{program.bestScore}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">
+                      {formatTimeAgo(program.lastStudied)}
+                    </span>
+                    <button className="btn btn-ghost text-xs px-3 py-1.5 hover:bg-secondary hover:text-white group-hover:bg-secondary group-hover:text-white transition-all">
+                      Continue
+                    </button>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs">
-                {program.lastUpdated ? new Date(program.lastUpdated).toLocaleDateString() : 'Recently'}
-              </span>
+
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card gradient-soft border-0">
+        <div className="p-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-secondary/20 rounded-xl flex items-center justify-center">
+              <TrendingUp className="text-secondary" size={20} />
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900">Keep Learning</h4>
+              <p className="text-sm text-gray-600">Consistency is key to mastering new skills</p>
             </div>
           </div>
-        ))}
+          <button className="btn btn-secondary text-sm px-4 py-2">
+            Start New
+          </button>
+        </div>
       </div>
     </div>
   );

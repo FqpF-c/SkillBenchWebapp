@@ -43,17 +43,20 @@ import {
   
     async sendOTP(phoneNumber) {
       try {
-        console.log(`Sending OTP to ${phoneNumber}`);
+        console.log(`FirebaseAuthService: Sending OTP to ${phoneNumber}`);
         
         if (phoneNumber === '+911234567890') {
+          console.log('Using test credentials - signing in anonymously');
           await signInAnonymously(auth);
           this.confirmationResult = 'test-confirmation';
+          console.log('Test OTP sent successfully');
           return { success: true };
         }
-  
+
         this.clearRecaptcha();
         await this.initRecaptcha();
         
+        console.log('Calling signInWithPhoneNumber...');
         this.confirmationResult = await signInWithPhoneNumber(
           auth, 
           phoneNumber, 
@@ -63,7 +66,7 @@ import {
         console.log('OTP sent successfully');
         return { success: true };
       } catch (error) {
-        console.error('Error sending OTP:', error);
+        console.error('FirebaseAuthService: Error sending OTP:', error);
         this.clearRecaptcha();
         return { success: false, error: this.getErrorMessage(error.code) };
       }
@@ -92,15 +95,26 @@ import {
   
     async signOut() {
       try {
-        await signOut(auth);
-        this.confirmationResult = null;
+        console.log('FirebaseAuthService: Starting sign out...');
+        
+        // Clear reCAPTCHA
         this.clearRecaptcha();
+        
+        // Clear confirmation result
+        this.confirmationResult = null;
+        
+        // Sign out from Firebase Auth
+        await signOut(auth);
+        
+        // Clear all localStorage items
         localStorage.removeItem('userData');
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('phoneNumber');
+        
+        console.log('FirebaseAuthService: Sign out completed successfully');
         return { success: true };
       } catch (error) {
-        console.error('Error signing out:', error);
+        console.error('FirebaseAuthService: Error signing out:', error);
         return { success: false, error: error.message };
       }
     }
