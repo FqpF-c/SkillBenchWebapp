@@ -1,23 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useUserData } from '../hooks/useUserData';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import StatCard from '../components/home/StatCard';
-import { Coins, Zap, Flame, BookOpen, Play, ChevronRight } from 'lucide-react';
-import UserDataDebug from '../components/debug/UserDataDebug';
+import { usePrepData } from '../hooks/usePrepData';
+import StatsRow from '../components/home/StatsRow';
+import { BookOpen, Play, ChevronRight, ArrowRight } from 'lucide-react';
 
 const Home = () => {
   const { user } = useAuth();
-  const { userStats, loading: userLoading, error: userError } = useUserData();
   const navigate = useNavigate();
+  const { prepData, loading, error } = usePrepData();
   const [greeting, setGreeting] = useState('');
   const [greetingIcon, setGreetingIcon] = useState('');
-  const [categoryTitles, setCategoryTitles] = useState([]);
-  const [categorySubcategories, setCategorySubcategories] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [loadingSubcategories, setLoadingSubcategories] = useState(true);
 
   useEffect(() => {
     updateGreeting();
@@ -25,310 +18,289 @@ const Home = () => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const loadCategoryTitles = async () => {
-      try {
-        setLoading(true);
-        const titlesDoc = await getDoc(doc(db, 'prep', 'Title'));
-        
-        if (titlesDoc.exists()) {
-          const data = titlesDoc.data();
-          
-          if (data && data.Title && Array.isArray(data.Title)) {
-            setCategoryTitles(data.Title);
-            console.log('Loaded category titles:', data.Title);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading category titles:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCategoryTitles();
-  }, []);
-
-  useEffect(() => {
-    const loadCategorySubcategories = async () => {
-      if (!categoryTitles || categoryTitles.length === 0) return;
-
-      setLoadingSubcategories(true);
-      const subcategoriesData = {};
-      
-      for (const category of categoryTitles) {
-        try {
-          console.log(`Loading subcategories for ${category}`);
-          
-          const snapshot = await getDoc(doc(db, 'prep', 'Title', category, category));
-          
-          if (snapshot.exists()) {
-            const data = snapshot.data();
-            console.log(`${category} subcategories data:`, data);
-            
-            if (data && data[category] && Array.isArray(data[category])) {
-              const items = data[category];
-              const subcats = items.map(item => {
-                if (typeof item === 'object' && item !== null) {
-                  return item.name || Object.keys(item)[0] || 'Unknown';
-                } else if (typeof item === 'string') {
-                  return item;
-                }
-                return 'Unknown';
-              });
-              
-              subcategoriesData[category] = subcats;
-              console.log('Loaded subcategories for', category, ':', subcats);
-            } else {
-              subcategoriesData[category] = [];
-            }
-          } else {
-            subcategoriesData[category] = [];
-          }
-        } catch (error) {
-          console.error(`Error loading subcategories for ${category}:`, error);
-          subcategoriesData[category] = [];
-        }
-      }
-      
-      setCategorySubcategories(subcategoriesData);
-      setLoadingSubcategories(false);
-    };
-
-    loadCategorySubcategories();
-  }, [categoryTitles]);
-
   const updateGreeting = () => {
     const hour = new Date().getHours();
-    
-    if (hour >= 5 && hour < 12) {
+    if (hour < 12) {
       setGreeting('Good Morning');
       setGreetingIcon('🌅');
-    } else if (hour >= 12 && hour < 17) {
+    } else if (hour < 17) {
       setGreeting('Good Afternoon');
       setGreetingIcon('☀️');
-    } else if (hour >= 17 && hour < 21) {
+    } else {
       setGreeting('Good Evening');
       setGreetingIcon('🌆');
-    } else {
-      setGreeting('Good Night');
-      setGreetingIcon('🌙');
     }
   };
 
-  const categories = [
-    {
-      name: 'Programming Language',
-      icon: '💻',
-      gradient: 'purple'
-    },
-    {
-      name: 'Web Development',
-      icon: '🌐',
-      gradient: 'blue'
-    },
-    {
-      name: 'Cloud Computing',
-      icon: '☁️',
-      gradient: 'indigo'
-    },
-    {
-      name: 'General Skills',
-      icon: '🎯',
-      gradient: 'green'
-    },
-    {
-      name: 'App Development',
-      icon: '📱',
-      gradient: 'orange'
-    }
-  ];
+  const handleCategoryClick = (categoryName) => {
+    navigate(`/list-topics/${encodeURIComponent(categoryName)}`, {
+      state: {
+        categoryName,
+        categoryIcon: getCategoryIcon(categoryName)
+      }
+    });
+  };
 
-  const getGradientClasses = (gradient) => {
-    const gradients = {
-      purple: 'from-purple-500 to-pink-500',
-      blue: 'from-blue-500 to-cyan-500',
-      indigo: 'from-indigo-500 to-purple-500',
-      green: 'from-green-500 to-emerald-500',
-      orange: 'from-orange-500 to-red-500'
+  const handleSubcategoryClick = (categoryName, subcategory) => {
+    navigate(`/list-topics/${encodeURIComponent(categoryName)}`, {
+      state: {
+        categoryName,
+        categoryIcon: getCategoryIcon(categoryName),
+        initialExpandedTopic: subcategory
+      }
+    });
+  };
+
+  const getCategoryIcon = (categoryName) => {
+    const icons = {
+      'Programming Language': '💻',
+      'Web Development': '🌐',
+      'App Development': '📱',
+      'Cloud Computing': '☁️',
+      'Database': '🗄️',
+      'Machine Learning': '🤖',
+      'General Skills': '🎯'
     };
-    return gradients[gradient] || gradients.purple;
+    return icons[categoryName] || '📚';
   };
 
-  const handleSubtopicClick = (categoryName, subtopic) => {
-    navigate(`/list-topics/${encodeURIComponent(categoryName)}`, {
-      state: {
-        categoryName,
-        categoryIcon: categories.find(c => c.name === categoryName)?.icon || '📚',
-        initialExpandedTopic: subtopic
-      }
-    });
+  const getAssetForTopic = (topicName) => {
+    const normalizedName = topicName.toLowerCase().trim();
+    const topicAssetMap = {
+      'c': '💻',
+      'c++': '💻',
+      'cpp': '💻',
+      'java': '☕',
+      'python': '🐍',
+      'kotlin': '📱',
+      'swift': '🏃‍♂️',
+      'flutter': '🦋',
+      'react': '⚛️',
+      'react native': '⚛️',
+      'javascript': '🟨',
+      'html': '🌐',
+      'css': '🎨',
+      'aws': '☁️',
+      'azure': '☁️',
+      'gcp': '☁️',
+      'web development': '🌐',
+    };
+    return topicAssetMap[normalizedName] || '📚';
   };
 
-  const handleViewAllClick = (categoryName) => {
-    navigate(`/list-topics/${encodeURIComponent(categoryName)}`, {
-      state: {
-        categoryName,
-        categoryIcon: categories.find(c => c.name === categoryName)?.icon || '📚'
-      }
-    });
+  const getColorForTopic = (topicName) => {
+    const normalizedName = topicName.toLowerCase().trim();
+    const categoryColors = {
+      'c': 'from-blue-500 to-blue-600',
+      'c++': 'from-blue-400 to-blue-500',
+      'java': 'from-red-500 to-red-600',
+      'python': 'from-green-500 to-green-600',
+      'kotlin': 'from-purple-500 to-purple-600',
+      'swift': 'from-orange-500 to-orange-600',
+      'flutter': 'from-cyan-500 to-cyan-600',
+      'react': 'from-cyan-400 to-blue-500',
+      'javascript': 'from-yellow-500 to-yellow-600',
+      'html': 'from-orange-400 to-red-500',
+      'css': 'from-blue-400 to-purple-500',
+      'aws': 'from-orange-500 to-yellow-500',
+      'azure': 'from-blue-500 to-blue-700',
+      'gcp': 'from-blue-400 to-green-500',
+      'web development': 'from-teal-500 to-teal-600',
+    };
+    return categoryColors[normalizedName] || 'from-gray-500 to-gray-600';
   };
 
-  const renderCategorySection = (category) => {
-    const categoryData = categories.find(c => c.name === category.name);
-    const subcategories = categorySubcategories[category.name] || [];
-    const displaySubcategories = subcategories.slice(0, 8);
+  const renderCategorySection = (categoryName) => {
+    const items = prepData.categoryItems[categoryName] || [];
+    if (items.length === 0) return null;
 
-    if (loadingSubcategories) {
-      return (
-        <div key={category.name} className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="text-2xl">{categoryData?.icon || '📚'}</div>
-            <h2 className="text-xl font-bold text-gray-900">{category.name}</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {[...Array(4)].map((_, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 animate-pulse"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-gray-200 rounded-xl mb-3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-16 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-12"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (subcategories.length === 0) {
-      return null;
-    }
+    const displayItems = items.slice(0, 6);
 
     return (
-      <div key={category.name} className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+      <div key={categoryName} className="mb-8">
+        <div className="flex items-center justify-between mb-4 px-4">
           <div className="flex items-center gap-3">
-            <div className="text-2xl">{categoryData?.icon || '📚'}</div>
-            <h2 className="text-xl font-bold text-gray-900">{category.name}</h2>
+            <div className="text-2xl">{getCategoryIcon(categoryName)}</div>
+            <h2 className="text-xl font-bold text-gray-900">{categoryName}</h2>
           </div>
-          <button 
-            onClick={() => handleViewAllClick(category.name)}
-            className="flex items-center gap-1 text-purple-600 hover:text-purple-700 font-medium text-sm transition-colors"
+          <button
+            onClick={() => handleCategoryClick(categoryName)}
+            className="flex items-center gap-1 text-sm text-purple-600 font-medium hover:text-purple-700 transition-colors"
           >
-            View All
+            View all
             <ChevronRight size={16} />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {displaySubcategories.map((subtopic, index) => (
-            <div
-              key={subtopic}
-              onClick={() => handleSubtopicClick(category.name, subtopic)}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-lg hover:border-purple-200 transition-all duration-300 cursor-pointer group transform hover:scale-105"
-              style={{ 
-                animation: `fadeInUp 0.6s ease-out ${index * 100}ms both`
-              }}
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className={`w-12 h-12 bg-gradient-to-br ${getGradientClasses(categoryData?.gradient)} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                  <BookOpen className="text-white" size={20} />
+        <div className="flex gap-4 overflow-x-auto pb-4 px-4">
+          {displayItems.map((item, index) => {
+            const name = item.name || 'Unknown';
+            const asset = getAssetForTopic(name);
+            const gradient = getColorForTopic(name);
+
+            return (
+              <div
+                key={index}
+                onClick={() => handleSubcategoryClick(categoryName, name)}
+                className={`min-w-[140px] bg-gradient-to-br ${gradient} rounded-2xl p-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-lg group`}
+              >
+                <div className="text-center">
+                  <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">
+                    {asset}
+                  </div>
+                  <h3 className="text-white font-semibold text-sm mb-2 line-clamp-2">
+                    {name}
+                  </h3>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <ArrowRight className="text-white mx-auto" size={16} />
+                  </div>
                 </div>
-                <h3 className="font-medium text-gray-900 text-sm group-hover:text-purple-700 transition-colors leading-tight line-clamp-2">
-                  {subtopic}
-                </h3>
               </div>
-              
-              <div className="mt-3 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="p-1.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors">
-                  <Play size={12} />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
   };
 
+  const renderLoadingSkeleton = () => (
+    <div className="space-y-8">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="mb-8">
+          <div className="flex items-center justify-between mb-4 px-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="w-48 h-6 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-4 px-4">
+            {[1, 2, 3, 4, 5, 6].map((j) => (
+              <div key={j} className="min-w-[140px] h-32 bg-gray-200 rounded-2xl animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-8 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading your dashboard...</p>
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="mb-8">
+          <div className="w-64 h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+          <div className="w-48 h-6 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        
+        <div className="mb-8">
+          <div className="flex gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-gray-200 rounded-2xl p-6 min-w-48 h-24 animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+        
+        {renderLoadingSkeleton()}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <div className="text-red-600 text-lg font-semibold mb-2">
+            Unable to load content
+          </div>
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-8">
-      <UserDataDebug />
-      
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      `}</style>
+  const priorityCategories = [
+    'Programming Language',
+    'Web Development',
+    'App Development',
+    'Cloud Computing',
+    'Database',
+    'Machine Learning',
+    'General Skills'
+  ];
 
-      <div className="flex items-center text-3xl font-bold mb-10">
-        <span className="text-4xl mr-3 filter drop-shadow-lg">{greetingIcon}</span>
-        <span className="bg-gradient-to-r from-pink-500 to-purple-700 bg-clip-text text-transparent">
-          {greeting}, {user?.username || 'User'}!
-        </span>
+  const displayCategories = prepData.categoryTitles.filter(cat => 
+    priorityCategories.includes(cat)
+  ).sort((a, b) => {
+    const aIndex = priorityCategories.indexOf(a);
+    const bIndex = priorityCategories.indexOf(b);
+    return aIndex - bIndex;
+  });
+
+  return (
+    <div className="max-w-6xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {greetingIcon} {greeting}, {user?.username || 'User'}!
+        </h1>
+        <p className="text-gray-600 text-lg">Ready to enhance your skills today?</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <StatCard
-          title="Coins"
-          value={userStats.coins}
-          icon={Coins}
-          color="gold"
-          delay={0}
-        />
-        <StatCard
-          title="XP"
-          value={userStats.xp}
-          icon={Zap}
-          color="purple"
-          delay={200}
-        />
-        <StatCard
-          title="Streaks"
-          value={userStats.streaks}
-          icon={Flame}
-          color="orange"
-          delay={400}
-        />
+      <StatsRow />
+
+      <div className="mb-8">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold mb-2">Continue Learning</h2>
+              <p className="text-purple-100 mb-4">
+                Pick up where you left off and keep building your skills
+              </p>
+            </div>
+            <div className="hidden md:block">
+              <BookOpen className="w-16 h-16 text-purple-200" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Explore Learning Paths
-          </h2>
-          
-          {categories.map((category) => 
-            renderCategorySection(category)
-          )}
+        {displayCategories.length > 0 ? (
+          displayCategories.map(renderCategorySection)
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">📚</div>
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No content available</h3>
+            <p className="text-gray-500">
+              {prepData.totalCategories === 0 
+                ? "Loading content..." 
+                : "Content will appear here once loaded."
+              }
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-12 text-center">
+        <div className="bg-gray-50 rounded-2xl p-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Explore All Categories
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Discover more topics and expand your learning journey
+          </p>
+          <button
+            onClick={() => navigate('/academics')}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 flex items-center gap-2 mx-auto"
+          >
+            Browse All Topics
+            <ArrowRight size={20} />
+          </button>
         </div>
       </div>
     </div>

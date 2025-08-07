@@ -3,6 +3,7 @@
   background: var(--softbg, #faf5ff);
   padding: 0 2rem 2rem 2rem;
 }
+
 .greeting-section {
   display: flex;
   align-items: center;
@@ -11,28 +12,42 @@
   margin-bottom: 2.5rem;
   animation: fadeIn 0.7s ease;
 }
+
 .greeting-icon {
   font-size: 2.2rem;
   margin-right: 0.7rem;
   filter: drop-shadow(0 0 8px #f472b6aa);
   transition: filter 0.3s;
 }
-.sun-glow { filter: drop-shadow(0 0 12px #ffd70088); }
-.moon-glow { filter: drop-shadow(0 0 12px #b799ffaa); }
+
+.sun-glow { 
+  filter: drop-shadow(0 0 12px #ffd70088); 
+}
+
+.moon-glow { 
+  filter: drop-shadow(0 0 12px #b799ffaa); 
+}
+
 .greeting-text {
   background: linear-gradient(90deg, #f472b6, #7e22ce);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes fadeIn { 
+  from { opacity: 0; } 
+  to { opacity: 1; } 
+}
 
 .stat-row {
-  display: flex;
-  gap: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 2.5rem;
+  margin-top: -2rem; /* Overlap slightly with WelcomeHeader */
 }
+
 .stat-card {
   background: #fff;
   border-radius: 1.2rem;
@@ -48,32 +63,85 @@
   animation: fadeInUp 0.5s ease forwards;
   animation-delay: var(--delay, 0s);
 }
+
 .stat-card:hover {
   box-shadow: 0 8px 32px 0 rgba(126,34,206,0.15);
   transform: scale(1.04);
 }
+
 .stat-icon {
   color: var(--primary, #7e22ce);
   margin-bottom: 0.5rem;
   filter: drop-shadow(0 0 6px #f472b6aa);
 }
+
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
   color: #222;
 }
+
 .stat-label {
   font-size: 1rem;
   color: var(--primary, #7e22ce);
   margin-top: 0.25rem;
 }
+
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: none; }
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: none; 
+  }
 }
+
 .dashboard-sections {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2.5rem;
 }
-/* Optional: animated background shapes can be added here */ 
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .home-root {
+    padding: 0 1rem 1rem 1rem;
+  }
+  
+  .stat-row {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: -1rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .dashboard-sections {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    min-width: auto;
+    padding: 0.75rem;
+  }
+  
+  .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+  }
+}

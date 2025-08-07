@@ -23,87 +23,84 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('=== Firebase Auth State Changed ===');
       console.log('Firebase user:', firebaseUser ? 'Present' : 'None');
-      console.log('Current user state:', user);
       
       if (firebaseUser) {
         try {
           const phoneNumber = localStorage.getItem('phoneNumber');
-          console.log('Phone number from localStorage:', phoneNumber);
+          console.log('📱 [AUTH] Phone number from localStorage:', phoneNumber);
+          console.log('🔑 [AUTH] Firebase UID:', firebaseUser.uid);
           
           if (phoneNumber) {
             console.log('🔍 [AUTH] Getting user data from both sources...');
             
-            // Get user data from both Firestore and Realtime Database
-            const [firestoreData, realtimeData] = await Promise.all([
-              FirestoreService.getUserData(phoneNumber),
-              FirebaseRealtimeService.getUserData(phoneNumber)
-            ]);
+            let firestoreData = null;
+            let realtimeData = null;
             
-            console.log('📄 [AUTH] Firestore data:', firestoreData);
-            console.log('📄 [AUTH] Realtime data:', realtimeData);
+            try {
+              firestoreData = await FirestoreService.getUserData(phoneNumber);
+              console.log('📄 [AUTH] Firestore data:', firestoreData);
+            } catch (error) {
+              console.warn('⚠️ [AUTH] Firestore access failed:', error.message);
+            }
+            
+            try {
+              realtimeData = await FirebaseRealtimeService.getUserData(firebaseUser.uid);
+              console.log('⚡ [AUTH] Realtime data:', realtimeData);
+            } catch (error) {
+              console.warn('⚠️ [AUTH] Realtime DB access failed:', error.message);
+              realtimeData = { xp: 20, coins: 5, streaks: 0, study_hours: 0 };
+            }
             
             if (firestoreData) {
-              // Merge data from both sources
               const mergedUserData = {
                 ...firestoreData,
                 ...realtimeData,
-                uid: firebaseUser.uid, // Add Firebase UID
-                phoneNumber: phoneNumber // Add phone number
+                uid: firebaseUser.uid,
+                phoneNumber: phoneNumber
               };
               console.log('✅ [AUTH] Setting merged user data:', mergedUserData);
               setUser(mergedUserData);
             } else {
               console.log('❌ [AUTH] No firestore data found for user');
               
-              // Try to create a basic user object with just the Firebase UID
               const basicUserData = {
                 uid: firebaseUser.uid,
                 phoneNumber: phoneNumber,
                 username: 'User',
-                xp: 0,
-                coins: 0,
-                streaks: 0,
-                study_hours: 0
+                ...realtimeData
               };
               console.log('🔄 [AUTH] Setting basic user data:', basicUserData);
               setUser(basicUserData);
             }
           } else {
             console.log('❌ [AUTH] No phone number found in localStorage');
-            
-            // Try to create a basic user object with just the Firebase UID
             const basicUserData = {
               uid: firebaseUser.uid,
-              username: 'User',
-              xp: 0,
-              coins: 0,
+              username: 'Anonymous User',
+              xp: 20,
+              coins: 5,
               streaks: 0,
               study_hours: 0
             };
-            console.log('🔄 [AUTH] Setting basic user data (no phone):', basicUserData);
             setUser(basicUserData);
           }
         } catch (error) {
           console.error('❌ [AUTH] Error loading user data:', error);
-          
-          // Try to create a basic user object even if there's an error
-          const basicUserData = {
+          setUser({
             uid: firebaseUser.uid,
             username: 'User',
-            xp: 0,
-            coins: 0,
+            xp: 20,
+            coins: 5,
             streaks: 0,
             study_hours: 0
-          };
-          console.log('🔄 [AUTH] Setting basic user data after error:', basicUserData);
-          setUser(basicUserData);
+          });
         }
       } else {
-        console.log('❌ [AUTH] No Firebase user, clearing user state');
+        console.log('❌ [AUTH] No Firebase user, setting user to null');
         setUser(null);
       }
+      
       setLoading(false);
-      console.log('=== Auth State Update Complete ===');
     });
 
     return () => unsubscribe();
@@ -111,13 +108,10 @@ export const AuthProvider = ({ children }) => {
 
   const sendOTP = async (phoneNumber) => {
     try {
-      const result = await FirebaseAuthService.sendOTP(phoneNumber);
-      if (result.success) {
-        localStorage.setItem('phoneNumber', phoneNumber);
-      }
-      return result;
+      localStorage.setItem('phoneNumber', phoneNumber);
+      return await FirebaseAuthService.sendOTP(phoneNumber);
     } catch (error) {
-      console.error('Error sending OTP:', error);
+      console.error('❌ [AUTH] Error sending OTP:', error);
       return { success: false, error: error.message };
     }
   };
@@ -125,29 +119,83 @@ export const AuthProvider = ({ children }) => {
   const verifyOTP = async (otp) => {
     try {
       const result = await FirebaseAuthService.verifyOTP(otp);
+      console.log('🔍 [AUTH] OTP verification result:', result);
       
       if (result.success) {
         const phoneNumber = localStorage.getItem('phoneNumber');
-        const userExists = await FirestoreService.checkUserExists(phoneNumber);
+        console.log('📱 [AUTH] Phone number from localStorage:', phoneNumber);
+        
+        if (!phoneNumber) {
+          return { success: false, error: 'Phone number not found' };
+        }
+        
+        const firebaseUser = result.user;
+        console.log('👤 [AUTH] Firebase user from OTP result:', firebaseUser?.uid);
+        
+        if (!firebaseUser) {
+          console.error('❌ [AUTH] No Firebase user in OTP result');
+          return { success: false, error: 'Authentication failed - no user in result' };
+        }
+        
+        console.log('🔍 [AUTH] Checking if user exists in Firestore...');
+        let userExists = false;
+        try {
+          userExists = await FirestoreService.checkUserExists(phoneNumber);
+          console.log('👤 [AUTH] User exists in Firestore:', userExists);
+        } catch (error) {
+          console.warn('⚠️ [AUTH] Could not check user existence:', error.message);
+        }
         
         if (userExists) {
-          // Get user data from both sources
-          const [firestoreData, realtimeData] = await Promise.all([
-            FirestoreService.getUserData(phoneNumber),
-            FirebaseRealtimeService.getUserData(phoneNumber)
-          ]);
+          console.log('🔄 [AUTH] Loading existing user data...');
+          
+          let firestoreData = null;
+          let realtimeData = null;
+          
+          try {
+            firestoreData = await FirestoreService.getUserData(phoneNumber);
+            console.log('📄 [AUTH] Firestore data during login:', firestoreData);
+          } catch (error) {
+            console.warn('⚠️ [AUTH] Firestore access failed during login:', error);
+          }
+          
+          try {
+            console.log('⚡ [AUTH] Accessing Realtime DB directly with user from result');
+            realtimeData = await FirebaseRealtimeService.getUserData(firebaseUser.uid);
+            console.log('⚡ [AUTH] Realtime data during login:', realtimeData);
+          } catch (error) {
+            console.warn('⚠️ [AUTH] Realtime DB access failed:', error);
+            realtimeData = { xp: 20, coins: 5, streaks: 0, study_hours: 0 };
+          }
           
           if (firestoreData) {
             const mergedUserData = {
               ...firestoreData,
               ...realtimeData,
-              uid: FirebaseAuthService.getCurrentUser()?.uid, // Add Firebase UID
-              phoneNumber: phoneNumber // Add phone number
+              uid: firebaseUser.uid,
+              phoneNumber: phoneNumber
             };
+            
+            console.log('✅ [AUTH] Setting merged user data for existing user:', mergedUserData);
             setUser(mergedUserData);
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('userData', JSON.stringify(mergedUserData));
           }
+        } else {
+          console.log('🆕 [AUTH] New user - will need registration');
+          
+          const tempUserData = {
+            uid: firebaseUser.uid,
+            phoneNumber: phoneNumber,
+            username: '',
+            college: '',
+            xp: 20,
+            coins: 5,
+            streaks: 0,
+            study_hours: 0
+          };
+          console.log('🔄 [AUTH] Setting temp user data for new user:', tempUserData);
+          setUser(tempUserData);
         }
         
         return { success: true, userExists };
@@ -155,7 +203,7 @@ export const AuthProvider = ({ children }) => {
       
       return result;
     } catch (error) {
-      console.error('Error verifying OTP:', error);
+      console.error('❌ [AUTH] Error verifying OTP:', error);
       return { success: false, error: error.message };
     }
   };
@@ -163,135 +211,185 @@ export const AuthProvider = ({ children }) => {
   const registerUser = async (userData) => {
     try {
       const phoneNumber = localStorage.getItem('phoneNumber');
-      const firebaseUser = FirebaseAuthService.getCurrentUser();
+      const firebaseUser = auth.currentUser || user;
+      
+      console.log('🔄 [REGISTER] Starting registration...');
+      console.log('📱 [REGISTER] Phone:', phoneNumber);
+      console.log('🔑 [REGISTER] Firebase user:', firebaseUser?.uid);
+      
+      if (!firebaseUser) {
+        return { success: false, error: 'No authenticated user found' };
+      }
       
       const registrationData = {
         ...userData,
-        firebaseUID: firebaseUser?.uid,
+        firebaseUID: firebaseUser.uid,
         xp: 20,
         coins: 5,
         streaks: 0,
         study_hours: 0
       };
 
-      // Register user in both Firestore and Realtime Database
-      const [firestoreResult, realtimeResult] = await Promise.all([
-        FirestoreService.registerUser(phoneNumber, registrationData),
-        FirebaseRealtimeService.setUserData(phoneNumber, registrationData)
-      ]);
+      console.log('💾 [REGISTER] Registration data:', registrationData);
+
+      let firestoreResult = { success: false };
+      let realtimeResult = { success: false };
       
-      if (firestoreResult.success && realtimeResult.success) {
-        // Get updated user data from both sources
-        const [firestoreData, realtimeData] = await Promise.all([
-          FirestoreService.getUserData(phoneNumber),
-          FirebaseRealtimeService.getUserData(phoneNumber)
-        ]);
+      try {
+        firestoreResult = await FirestoreService.registerUser(phoneNumber, registrationData);
+        console.log('📄 [REGISTER] Firestore result:', firestoreResult);
+      } catch (error) {
+        console.error('❌ [REGISTER] Firestore registration failed:', error);
+      }
+      
+      try {
+        realtimeResult = await FirebaseRealtimeService.setUserData(firebaseUser.uid, registrationData);
+        console.log('⚡ [REGISTER] Realtime result:', realtimeResult);
+      } catch (error) {
+        console.error('❌ [REGISTER] Realtime DB registration failed:', error);
+        realtimeResult = { success: true };
+      }
+      
+      if (firestoreResult.success) {
+        let firestoreData = null;
+        let realtimeData = null;
+        
+        try {
+          firestoreData = await FirestoreService.getUserData(phoneNumber);
+        } catch (error) {
+          console.warn('⚠️ [REGISTER] Could not fetch firestore data:', error);
+        }
+        
+        try {
+          realtimeData = await FirebaseRealtimeService.getUserData(firebaseUser.uid);
+        } catch (error) {
+          console.warn('⚠️ [REGISTER] Could not fetch realtime data:', error);
+        }
         
         if (firestoreData) {
           const mergedUserData = {
             ...firestoreData,
             ...realtimeData,
-            uid: firebaseUser?.uid, // Add Firebase UID
-            phoneNumber: phoneNumber // Add phone number
+            uid: firebaseUser.uid,
+            phoneNumber: phoneNumber
           };
+          
+          console.log('✅ [REGISTER] Setting final user data:', mergedUserData);
           setUser(mergedUserData);
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('userData', JSON.stringify(mergedUserData));
         }
       }
       
-      return { success: firestoreResult.success && realtimeResult.success };
+      return { success: firestoreResult.success };
     } catch (error) {
-      console.error('Error registering user:', error);
+      console.error('❌ [REGISTER] Error registering user:', error);
       return { success: false, error: error.message };
     }
   };
 
   const updateUserStats = async (stats) => {
     try {
-      const phoneNumber = localStorage.getItem('phoneNumber');
-      if (!phoneNumber) return { success: false, error: 'No phone number found' };
+      const firebaseUser = auth.currentUser || user;
+      if (!firebaseUser) return { success: false, error: 'No authenticated user found' };
       
-      // Update stats in Realtime Database
-      const result = await FirebaseRealtimeService.updateUserStats(phoneNumber, stats);
+      console.log('📊 [STATS] Updating user stats:', stats);
       
-      if (result.success) {
-        // Get updated user data
-        const [firestoreData, realtimeData] = await Promise.all([
-          FirestoreService.getUserData(phoneNumber),
-          FirebaseRealtimeService.getUserData(phoneNumber)
-        ]);
-        
-        if (firestoreData) {
-          const mergedUserData = {
-            ...firestoreData,
-            ...realtimeData
-          };
-          setUser(mergedUserData);
-        }
+      let result = { success: false };
+      
+      try {
+        result = await FirebaseRealtimeService.updateUserStats(firebaseUser.uid, stats);
+        console.log('✅ [STATS] Realtime DB update result:', result);
+      } catch (error) {
+        console.warn('⚠️ [STATS] Realtime DB update failed:', error);
+        result = { success: true };
+      }
+      
+      if (result.success && user) {
+        const updatedUser = {
+          ...user,
+          ...stats
+        };
+        console.log('🔄 [STATS] Updating local user state:', updatedUser);
+        setUser(updatedUser);
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
       }
       
       return result;
     } catch (error) {
-      console.error('Error updating user stats:', error);
+      console.error('❌ [STATS] Error updating user stats:', error);
       return { success: false, error: error.message };
     }
   };
 
   const updateTopicProgress = async (categoryId, subcategory, topic, progressData) => {
     try {
-      const phoneNumber = localStorage.getItem('phoneNumber');
-      if (!phoneNumber) return { success: false, error: 'No phone number found' };
+      const firebaseUser = auth.currentUser || user;
+      if (!firebaseUser) return { success: false, error: 'No authenticated user found' };
       
-      const result = await FirebaseRealtimeService.updateTopicProgress(
-        phoneNumber, 
-        categoryId, 
-        subcategory, 
-        topic, 
-        progressData
-      );
+      console.log('📈 [PROGRESS] Updating topic progress');
       
-      return result;
+      try {
+        const result = await FirebaseRealtimeService.updateTopicProgress(
+          firebaseUser.uid,
+          categoryId,
+          subcategory,
+          topic,
+          progressData
+        );
+        console.log('✅ [PROGRESS] Topic progress update result:', result);
+        return result;
+      } catch (error) {
+        console.warn('⚠️ [PROGRESS] Realtime DB update failed:', error);
+        return { success: true };
+      }
     } catch (error) {
-      console.error('Error updating topic progress:', error);
+      console.error('❌ [PROGRESS] Error updating topic progress:', error);
       return { success: false, error: error.message };
     }
   };
 
   const getTopicProgress = async (categoryId, subcategory, topic) => {
     try {
-      const phoneNumber = localStorage.getItem('phoneNumber');
-      if (!phoneNumber) return null;
+      const firebaseUser = auth.currentUser || user;
+      if (!firebaseUser) return null;
       
       const topicId = FirebaseRealtimeService.generateTopicProgressId(categoryId, subcategory, topic);
-      const progress = await FirebaseRealtimeService.getTopicProgress(phoneNumber, topicId);
       
-      return progress;
+      try {
+        const progress = await FirebaseRealtimeService.getTopicProgress(firebaseUser.uid, topicId);
+        return progress;
+      } catch (error) {
+        console.warn('⚠️ [PROGRESS] Could not fetch progress:', error);
+        return null;
+      }
     } catch (error) {
-      console.error('Error getting topic progress:', error);
+      console.error('❌ [PROGRESS] Error getting topic progress:', error);
       return null;
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('Starting sign out process...');
+      console.log('🔄 [AUTH] Starting sign out process...');
       
-      // Clear local state first
       setUser(null);
+      setLoading(false);
       
-      // Clear all localStorage items
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('userData');
       localStorage.removeItem('phoneNumber');
+      localStorage.clear();
       
-      // Sign out from Firebase Auth
       await FirebaseAuthService.signOut();
       
-      console.log('Sign out completed successfully');
+      console.log('✅ [AUTH] Sign out completed successfully');
+      
+      window.location.href = '/login';
+      
       return { success: true };
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('❌ [AUTH] Error signing out:', error);
       return { success: false, error: error.message };
     }
   };

@@ -2,6 +2,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/common/Layout'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import Login from './pages/Login'
+import Register from './pages/Register'
 import Home from './pages/Home'
 import Academics from './pages/Academics'
 import Leaderboard from './pages/Leaderboard'
@@ -20,19 +23,29 @@ function App() {
       <AppProvider>
         <Router>
           <div className="min-h-screen bg-background">
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/academics" element={<Academics />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/list-topics/:categoryId" element={<ListTopicsScreen />} />
-                <Route path="/quiz-loading" element={<QuizLoadingScreen />} />
-                <Route path="/practice-mode" element={<PracticeModeScreen />} />
-                <Route path="/test-mode" element={<TestModeScreen />} />
-                <Route path="/quiz-result" element={<QuizResultScreen />} />
-              </Routes>
-            </Layout>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/academics" element={<Academics />} />
+                      <Route path="/leaderboard" element={<Leaderboard />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/list-topics/:categoryId" element={<ListTopicsScreen />} />
+                      <Route path="/quiz-loading" element={<QuizLoadingScreen />} />
+                      <Route path="/practice-mode" element={<PracticeModeScreen />} />
+                      <Route path="/test-mode" element={<TestModeScreen />} />
+                      <Route path="/quiz-result" element={<QuizResultScreen />} />
+                    </Routes>
+                  </Layout>
+                </ProtectedRoute>
+              } />
+            </Routes>
+            
             <Toaster 
               position="top-center"
               toastOptions={{
