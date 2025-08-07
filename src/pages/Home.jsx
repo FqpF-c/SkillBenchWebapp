@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import StatCard from '../components/home/StatCard';
 import { Coins, Zap, Flame, BookOpen, Play, ChevronRight } from 'lucide-react';
+import UserDataDebug from '../components/debug/UserDataDebug';
 
 const Home = () => {
   const { user } = useAuth();
@@ -267,6 +268,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-8">
+      <UserDataDebug />
+      
       <style jsx>{`
         @keyframes fadeInUp {
           from {

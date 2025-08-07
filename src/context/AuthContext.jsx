@@ -31,11 +31,16 @@ export const AuthProvider = ({ children }) => {
           console.log('Phone number from localStorage:', phoneNumber);
           
           if (phoneNumber) {
+            console.log('🔍 [AUTH] Getting user data from both sources...');
+            
             // Get user data from both Firestore and Realtime Database
             const [firestoreData, realtimeData] = await Promise.all([
               FirestoreService.getUserData(phoneNumber),
               FirebaseRealtimeService.getUserData(phoneNumber)
             ]);
+            
+            console.log('📄 [AUTH] Firestore data:', firestoreData);
+            console.log('📄 [AUTH] Realtime data:', realtimeData);
             
             if (firestoreData) {
               // Merge data from both sources
@@ -45,22 +50,56 @@ export const AuthProvider = ({ children }) => {
                 uid: firebaseUser.uid, // Add Firebase UID
                 phoneNumber: phoneNumber // Add phone number
               };
-              console.log('Setting user data:', mergedUserData);
+              console.log('✅ [AUTH] Setting merged user data:', mergedUserData);
               setUser(mergedUserData);
             } else {
-              console.log('No firestore data found for user');
-              setUser(null);
+              console.log('❌ [AUTH] No firestore data found for user');
+              
+              // Try to create a basic user object with just the Firebase UID
+              const basicUserData = {
+                uid: firebaseUser.uid,
+                phoneNumber: phoneNumber,
+                username: 'User',
+                xp: 0,
+                coins: 0,
+                streaks: 0,
+                study_hours: 0
+              };
+              console.log('🔄 [AUTH] Setting basic user data:', basicUserData);
+              setUser(basicUserData);
             }
           } else {
-            console.log('No phone number found in localStorage');
-            setUser(null);
+            console.log('❌ [AUTH] No phone number found in localStorage');
+            
+            // Try to create a basic user object with just the Firebase UID
+            const basicUserData = {
+              uid: firebaseUser.uid,
+              username: 'User',
+              xp: 0,
+              coins: 0,
+              streaks: 0,
+              study_hours: 0
+            };
+            console.log('🔄 [AUTH] Setting basic user data (no phone):', basicUserData);
+            setUser(basicUserData);
           }
         } catch (error) {
-          console.error('Error loading user data:', error);
-          setUser(null);
+          console.error('❌ [AUTH] Error loading user data:', error);
+          
+          // Try to create a basic user object even if there's an error
+          const basicUserData = {
+            uid: firebaseUser.uid,
+            username: 'User',
+            xp: 0,
+            coins: 0,
+            streaks: 0,
+            study_hours: 0
+          };
+          console.log('🔄 [AUTH] Setting basic user data after error:', basicUserData);
+          setUser(basicUserData);
         }
       } else {
-        console.log('No Firebase user, clearing user state');
+        console.log('❌ [AUTH] No Firebase user, clearing user state');
         setUser(null);
       }
       setLoading(false);

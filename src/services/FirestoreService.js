@@ -11,16 +11,20 @@ import {
   class FirestoreService {
     async getUserData(phoneNumber) {
       try {
+        console.log(`🔍 [FIRESTORE] Getting user data for phone: ${phoneNumber}`);
         const userRef = doc(db, DB_PATHS.USERS, phoneNumber);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
-          return userSnap.data();
+          const data = userSnap.data();
+          console.log(`✅ [FIRESTORE] User data found:`, data);
+          return data;
+        } else {
+          console.log(`❌ [FIRESTORE] No user data found for phone: ${phoneNumber}`);
+          return null;
         }
-        
-        return null;
       } catch (error) {
-        console.error('Error getting user data:', error);
+        console.error('❌ [FIRESTORE] Error getting user data:', error);
         throw error;
       }
     }

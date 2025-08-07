@@ -396,6 +396,25 @@ class FirebaseService {
         return { success: true, data };
       } else {
         console.log(`❌ [USER_STATS] No user stats found at path: ${realtimePath}`);
+        
+        // Try alternative path structure (using phone number as key)
+        const phoneNumber = localStorage.getItem('phoneNumber');
+        if (phoneNumber) {
+          const alternativePath = `${DB_PATHS.REALTIME_USERS}/${phoneNumber}`;
+          console.log(`🔍 [USER_STATS] Trying alternative path: ${alternativePath}`);
+          
+          const altUserRef = ref(realtimeDb, alternativePath);
+          const altSnapshot = await get(altUserRef);
+          
+          if (altSnapshot.exists()) {
+            const altData = altSnapshot.val();
+            console.log(`📄 [USER_STATS] User stats found at alternative path:`, altData);
+            return { success: true, data: altData };
+          } else {
+            console.log(`❌ [USER_STATS] No user stats found at alternative path either`);
+          }
+        }
+        
         // Initialize default stats if user doesn't exist
         const defaultStats = {
           xp: 0,
@@ -482,9 +501,33 @@ class FirebaseService {
             }
           } else {
             console.warn(`⚠️ [USER_DATA] No current_firebase_uid found in user details`);
+            
+            // Fallback: Try using the provided userId directly
+            if (userId) {
+              console.log(`🔍 [USER_DATA] Fallback: Loading user stats for UID: ${userId}`);
+              const statsResult = await this.getUserStatsByUid(userId);
+              if (statsResult.success) {
+                results.userStats = statsResult.data;
+                console.log(`✅ [USER_DATA] User stats loaded successfully (fallback):`, results.userStats);
+              } else {
+                console.warn(`⚠️ [USER_DATA] Failed to load user stats (fallback):`, statsResult.error);
+              }
+            }
           }
         } else {
           console.warn(`⚠️ [USER_DATA] Failed to load user details:`, detailsResult.error);
+          
+          // Fallback: Try using the provided userId directly
+          if (userId) {
+            console.log(`🔍 [USER_DATA] Fallback: Loading user stats for UID: ${userId}`);
+            const statsResult = await this.getUserStatsByUid(userId);
+            if (statsResult.success) {
+              results.userStats = statsResult.data;
+              console.log(`✅ [USER_DATA] User stats loaded successfully (fallback):`, results.userStats);
+            } else {
+              console.warn(`⚠️ [USER_DATA] Failed to load user stats (fallback):`, statsResult.error);
+            }
+          }
         }
       } else {
         console.warn(`⚠️ [USER_DATA] No phoneNumber provided for details loading`);

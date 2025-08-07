@@ -4,16 +4,20 @@ import { realtimeDb, DB_PATHS } from '../config/firebase';
 class FirebaseRealtimeService {
   async getUserData(phoneNumber) {
     try {
+      console.log(`🔍 [REALTIME] Getting user data for phone: ${phoneNumber}`);
       const userRef = ref(realtimeDb, `${DB_PATHS.REALTIME_USERS}/${phoneNumber}`);
       const snapshot = await get(userRef);
       
       if (snapshot.exists()) {
-        return snapshot.val();
+        const data = snapshot.val();
+        console.log(`✅ [REALTIME] User data found:`, data);
+        return data;
+      } else {
+        console.log(`❌ [REALTIME] No user data found for phone: ${phoneNumber}`);
+        return null;
       }
-      
-      return null;
     } catch (error) {
-      console.error('Error getting user data from Realtime Database:', error);
+      console.error('❌ [REALTIME] Error getting user data from Realtime Database:', error);
       throw error;
     }
   }
