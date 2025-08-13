@@ -13,10 +13,11 @@ const QuizResultScreen = () => {
     totalQuestions,
     correctAnswers,
     totalXP,
-    questionHistory,
+    questionHistory = [],
     type,
     quizParams,
-    timeSpent
+    timeSpent,
+    isInfiniteMode
   } = location.state || {};
 
   if (!location.state) {
@@ -35,7 +36,7 @@ const QuizResultScreen = () => {
     );
   }
 
-  const percentage = Math.round((correctAnswers / totalQuestions) * 100);
+  const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
   const isPassed = percentage >= 60;
   
   const formatTime = (seconds) => {
@@ -56,139 +57,187 @@ const QuizResultScreen = () => {
   const performance = getPerformanceMessage();
 
   const handleRetry = () => {
-    navigate('/quiz-loading', {
-      state: {
-        mode,
-        type,
-        quizParams,
-        topicName,
-        subtopicName
-      }
-    });
+    if (isInfiniteMode) {
+      navigate('/quiz-loading', {
+        state: {
+          mode: 'practice',
+          type,
+          quizParams,
+          topicName,
+          subtopicName
+        }
+      });
+    } else {
+      navigate('/quiz-loading', {
+        state: {
+          mode,
+          type,
+          quizParams,
+          topicName,
+          subtopicName
+        }
+      });
+    }
   };
 
   const handleGoHome = () => {
     navigate('/');
   };
 
+  const processQuestionHistory = () => {
+    if (!questionHistory || !Array.isArray(questionHistory)) {
+      return [];
+    }
+
+    return questionHistory.map((item, index) => {
+      if (typeof item === 'object' && item !== null) {
+        return {
+          question: typeof item.question === 'string' ? item.question : 'Question not available',
+          selected: item.selected_answer || 'Not answered',
+          correct: item.correct_answer || 'N/A',
+          isCorrect: Boolean(item.is_correct),
+          explanation: item.explanation || 'No explanation available',
+          skipped: Boolean(item.skipped)
+        };
+      }
+      
+      return {
+        question: `Question ${index + 1}`,
+        selected: 'Not answered',
+        correct: 'N/A',
+        isCorrect: false,
+        explanation: 'No explanation available',
+        skipped: false
+      };
+    });
+  };
+
+  const processedQuestions = processQuestionHistory();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
-      {/* Header */}
       <div className={`${isPassed ? 'bg-gradient-to-r from-green-600 to-emerald-600' : 'bg-gradient-to-r from-orange-600 to-red-600'} text-white p-8`}>
         <div className="text-center">
           <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
             <Trophy className="text-white" size={40} />
           </div>
           <h1 className="text-3xl font-bold mb-2">
-            {mode === 'practice' ? 'Practice Complete!' : 'Test Complete!'}
+            {isInfiniteMode ? 'Infinite Practice Complete!' : mode === 'practice' ? 'Practice Complete!' : 'Test Complete!'}
           </h1>
-          <p className="text-lg opacity-90">{topicName} - {subtopicName}</p>
+          <p className={`text-xl ${performance.color.replace('text-', 'text-white/')}90`}>
+            {performance.message}
+          </p>
         </div>
       </div>
 
-      {/* Results Summary */}
-      <div className="p-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Score Card */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 text-center">
-            <div className="mb-6">
-              <div className={`text-6xl font-bold mb-2 ${performance.color}`}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">{topicName}</h2>
+            <p className="text-gray-600">{subtopicName}</p>
+            {isInfiniteMode && (
+              <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700">
+                <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                Infinite Mode
+              </div>
+            )}
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 text-center">
+              <Target className="w-8 h-8 text-blue-500 mx-auto mb-3" />
+              <div className="text-3xl font-bold text-gray-800">{totalQuestions}</div>
+              <div className="text-gray-600 text-sm">Total Questions</div>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 text-center">
+              <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-3" />
+              <div className="text-3xl font-bold text-gray-800">{correctAnswers}</div>
+              <div className="text-gray-600 text-sm">Correct Answers</div>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 text-center">
+              <div className={`text-3xl font-bold ${isPassed ? 'text-green-600' : 'text-red-500'}`}>
                 {percentage}%
               </div>
-              <p className={`text-xl font-semibold ${performance.color}`}>
-                {performance.message}
-              </p>
+              <div className="text-gray-600 text-sm">Accuracy</div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-blue-50 rounded-xl p-4">
-                <Target className="text-blue-600 mx-auto mb-2" size={24} />
-                <p className="text-sm text-gray-600">Score</p>
-                <p className="text-xl font-bold text-blue-600">
-                  {correctAnswers}/{totalQuestions}
-                </p>
-              </div>
-
-              {timeSpent && (
-                <div className="bg-purple-50 rounded-xl p-4">
-                  <Clock className="text-purple-600 mx-auto mb-2" size={24} />
-                  <p className="text-sm text-gray-600">Time Spent</p>
-                  <p className="text-xl font-bold text-purple-600">
-                    {formatTime(timeSpent)}
-                  </p>
-                </div>
-              )}
-
-              {totalXP && (
-                <div className="bg-green-50 rounded-xl p-4">
-                  <Trophy className="text-green-600 mx-auto mb-2" size={24} />
-                  <p className="text-sm text-gray-600">XP Earned</p>
-                  <p className="text-xl font-bold text-green-600">
-                    {totalXP} XP
-                  </p>
-                </div>
-              )}
+            
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 text-center">
+              <Clock className="w-8 h-8 text-purple-500 mx-auto mb-3" />
+              <div className="text-3xl font-bold text-gray-800">{formatTime(timeSpent)}</div>
+              <div className="text-gray-600 text-sm">Time Spent</div>
             </div>
           </div>
 
-          {/* Question Review */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Question Review</h2>
-            
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {questionHistory?.map((item, index) => (
-                <div
-                  key={index}
-                  className={`p-4 rounded-xl border-2 ${
-                    item.isCorrect
-                      ? 'border-green-200 bg-green-50'
-                      : 'border-red-200 bg-red-50'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      item.isCorrect ? 'bg-green-500' : 'bg-red-500'
-                    }`}>
-                      {item.isCorrect ? (
-                        <CheckCircle className="text-white" size={16} />
-                      ) : (
-                        <XCircle className="text-white" size={16} />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 mb-2">
-                        Q{index + 1}: {item.question}
-                      </p>
-                      <div className="text-sm space-y-1">
-                        <p className={`${item.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-                          Your answer: {item.selected || 'Not answered'}
+          {totalXP > 0 && (
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-6 text-center text-white mb-8">
+              <Trophy className="w-10 h-10 mx-auto mb-3" />
+              <div className="text-2xl font-bold">+{totalXP} XP Earned!</div>
+              <div className="text-yellow-100">Great work on completing the {isInfiniteMode ? 'infinite practice' : mode}!</div>
+            </div>
+          )}
+
+          {processedQuestions.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <CheckCircle className="text-green-500" size={24} />
+                Question Review
+              </h3>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {processedQuestions.map((item, index) => (
+                  <div
+                    key={index}
+                    className={`border rounded-xl p-4 ${
+                      item.isCorrect
+                        ? 'border-green-200 bg-green-50'
+                        : 'border-red-200 bg-red-50'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        item.isCorrect ? 'bg-green-500' : 'bg-red-500'
+                      }`}>
+                        {item.isCorrect ? (
+                          <CheckCircle className="text-white" size={16} />
+                        ) : (
+                          <XCircle className="text-white" size={16} />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 mb-2">
+                          Q{index + 1}: {item.question}
                         </p>
-                        {!item.isCorrect && (
-                          <p className="text-green-700">
-                            Correct answer: {item.correct}
+                        <div className="text-sm space-y-1">
+                          <p className={`${item.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                            Your answer: {item.skipped ? 'Skipped' : item.selected}
                           </p>
-                        )}
-                        {mode === 'practice' && item.explanation && (
-                          <p className="text-gray-600 mt-2 p-3 bg-white/50 rounded-lg">
-                            {item.explanation}
-                          </p>
-                        )}
+                          {!item.isCorrect && !item.skipped && (
+                            <p className="text-green-700">
+                              Correct answer: {item.correct}
+                            </p>
+                          )}
+                          {mode === 'practice' && item.explanation && item.explanation !== 'No explanation available' && (
+                            <p className="text-gray-600 mt-2 p-3 bg-white/50 rounded-lg">
+                              {item.explanation}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleRetry}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
             >
               <RotateCcw size={20} />
-              Try Again
+              {isInfiniteMode ? 'Practice Again' : 'Try Again'}
             </button>
             
             <button
@@ -200,7 +249,6 @@ const QuizResultScreen = () => {
             </button>
           </div>
 
-          {/* Performance Tips */}
           {percentage < 80 && (
             <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-3">
@@ -211,6 +259,7 @@ const QuizResultScreen = () => {
                 <li>• Practice more questions on this topic</li>
                 <li>• Focus on understanding concepts rather than memorizing</li>
                 <li>• Take your time to read questions carefully</li>
+                {isInfiniteMode && <li>• Try longer infinite practice sessions to improve consistency</li>}
               </ul>
             </div>
           )}
