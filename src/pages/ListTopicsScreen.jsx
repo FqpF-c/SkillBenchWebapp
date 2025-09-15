@@ -10,7 +10,15 @@ import {
   BookOpen, 
   Star,
   Target,
-  Clock
+  Clock,
+  Code,
+  Code2,
+  FileCode,
+  Terminal,
+  Cpu,
+  Database,
+  Globe,
+  Layers
 } from 'lucide-react';
 import ModeSelectionModal from '../components/modals/ModeSelectionModal';
 
@@ -181,11 +189,51 @@ const ListTopicsScreen = () => {
     return progressData[topicId]?.bestScore || 0;
   };
 
+  const getTopicIcon = (topicName) => {
+    const topic = topicName.toLowerCase();
+    
+    if (topic.includes('array') || topic.includes('string') || topic.includes('loop') || topic.includes('variable')) {
+      return Code;
+    } else if (topic.includes('function') || topic.includes('method') || topic.includes('class')) {
+      return Code2;
+    } else if (topic.includes('file') || topic.includes('io') || topic.includes('input') || topic.includes('output')) {
+      return FileCode;
+    } else if (topic.includes('terminal') || topic.includes('command') || topic.includes('shell')) {
+      return Terminal;
+    } else if (topic.includes('algorithm') || topic.includes('sort') || topic.includes('search')) {
+      return Cpu;
+    } else if (topic.includes('database') || topic.includes('sql') || topic.includes('data')) {
+      return Database;
+    } else if (topic.includes('web') || topic.includes('html') || topic.includes('css') || topic.includes('js')) {
+      return Globe;
+    } else if (topic.includes('structure') || topic.includes('stack') || topic.includes('queue')) {
+      return Layers;
+    } else {
+      return BookOpen;
+    }
+  };
+
   const toggleSubcategory = (subcategory) => {
-    setExpandedSubcategories(prev => ({
-      ...prev,
-      [subcategory]: !prev[subcategory]
-    }));
+    setExpandedSubcategories(prev => {
+      const isCurrentlyExpanded = prev[subcategory];
+      
+      // If clicking on an already expanded subcategory, just close it
+      if (isCurrentlyExpanded) {
+        return {
+          ...prev,
+          [subcategory]: false
+        };
+      }
+      
+      // Otherwise, close all others and open this one
+      const newState = {};
+      Object.keys(prev).forEach(key => {
+        newState[key] = false;
+      });
+      newState[subcategory] = true;
+      
+      return newState;
+    });
   };
 
   const handleTopicSelection = (subcategory, topic) => {
@@ -226,6 +274,11 @@ const ListTopicsScreen = () => {
     setSelectedTopic(null);
   };
 
+  const handleBackButton = () => {
+    // Navigate to home page instead of going back
+    navigate('/');
+  };
+
   const renderSubcategoryHeader = (subcategory) => {
     const isExpanded = expandedSubcategories[subcategory];
     const topics = topicsBySubcategory[subcategory] || [];
@@ -234,37 +287,50 @@ const ListTopicsScreen = () => {
     return (
       <div
         onClick={() => toggleSubcategory(subcategory)}
-        className="flex items-center justify-between p-6 bg-white rounded-2xl shadow-md border border-gray-100 cursor-pointer hover:shadow-lg transition-all duration-300 mb-4"
+        className="relative group cursor-pointer mb-8 overflow-visible"
+        style={{ overflow: 'visible', zIndex: 2 }}
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-            {subcategory[0]}
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{subcategory}</h3>
-            <p className="text-sm text-gray-500">{topics.length} topics</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {progress > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="w-16 h-2 bg-gray-200 rounded-full">
-                <div
-                  className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <span className="text-sm font-medium text-gray-600">{Math.round(progress)}%</span>
-            </div>
-          )}
+        <div className="flex items-center justify-between p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl border border-[#FAD4E6] transition-all duration-300 ease-out hover:scale-[1.02] hover:-translate-y-1 overflow-visible"
+        style={{ 
+          overflow: 'visible',
+          transformOrigin: 'center',
+          willChange: 'transform, box-shadow'
+        }}>
           
-          <div className="p-2 rounded-lg bg-gray-100">
-            {isExpanded ? (
-              <ChevronUp className="text-gray-600" size={20} />
-            ) : (
-              <ChevronDown className="text-gray-600" size={20} />
+          <div className="relative z-10 flex items-center gap-6">
+            <div className="w-14 h-14 bg-[#A10089] rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-[#FAD4E6] group-hover:scale-110 transition-all duration-300">
+              {subcategory[0]}
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-[#1F2937] group-hover:text-[#A10089] transition-colors duration-300 mb-1">
+                {subcategory}
+              </h3>
+              <p className="text-sm text-[#6B7280] font-medium">
+                {topics.length} topics • {Math.round(progress)}% complete
+              </p>
+            </div>
+          </div>
+          
+          <div className="relative z-10 flex items-center gap-4">
+            {progress > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="w-20 h-2 bg-[#FFF0F6] rounded-full shadow-inner">
+                  <div
+                    className="h-full bg-[#F871A0] rounded-full transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-bold text-[#6B7280] min-w-[3rem]">{Math.round(progress)}%</span>
+              </div>
             )}
+            
+            <div className="p-3 rounded-xl bg-[#FFF0F6] group-hover:bg-[#FAD4E6] transition-all duration-300">
+              {isExpanded ? (
+                <ChevronUp className="text-[#A10089] group-hover:scale-110 transition-transform duration-200" size={20} />
+              ) : (
+                <ChevronDown className="text-[#A10089] group-hover:scale-110 transition-transform duration-200" size={20} />
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -276,124 +342,172 @@ const ListTopicsScreen = () => {
     const progress = progressCache[topicId] || 0;
     const score = bestScoreCache[topicId] || 0;
     const hasProgress = progress > 0;
+    const isCompleted = progress >= 100;
+    const TopicIcon = getTopicIcon(topic);
 
     return (
       <div
         key={topic}
         onClick={() => handleTopicSelection(subcategory, topic)}
-        className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white hover:shadow-md transition-all duration-300 cursor-pointer mb-3 group"
+        className="relative p-6 bg-[#FFF0F6] rounded-2xl shadow-lg hover:shadow-xl border border-[#FAD4E6] cursor-pointer mb-4 group transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 ease-out hover:bg-white backdrop-blur-sm overflow-visible z-10"
+        style={{ 
+          overflow: 'visible',
+          transformOrigin: 'center',
+          willChange: 'transform, box-shadow'
+        }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
-              <BookOpen className="text-white" size={16} />
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 group-hover:text-purple-700 transition-colors">
-                {topic}
-              </h4>
-              {hasProgress && (
-                <p className="text-xs text-gray-500">
-                  {Math.round(progress)}% complete
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-12 h-12 bg-[#A10089] rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-[#FAD4E6] group-hover:scale-110 transition-all duration-300">
+                  <TopicIcon className="text-white" size={18} />
+                </div>
+                {isCompleted && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <h4 className="font-bold text-lg text-[#1F2937] group-hover:text-[#A10089] transition-colors duration-300 mb-1">
+                  {topic}
+                </h4>
+                <p className="text-sm text-[#6B7280] font-medium">
+                  {hasProgress ? `${Math.round(progress)}% completed` : 'Not started'}
                 </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {score > 0 && (
+                <div className="flex items-center gap-1 px-3 py-1.5 bg-[#FDE2E4] rounded-full shadow-lg">
+                  <Star className="text-[#A10089]" size={14} fill="currentColor" />
+                  <span className="text-sm font-bold text-[#A10089]">{score}</span>
+                </div>
               )}
+              
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <button className="p-2.5 bg-[#A10089] text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200">
+                  <Play size={16} />
+                </button>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            {score > 0 && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 rounded-lg">
-                <Star className="text-yellow-600" size={14} fill="currentColor" />
-                <span className="text-sm font-medium text-yellow-700">{score}</span>
+          {hasProgress && !isCompleted && (
+            <div className="mt-4">
+              <div className="w-full h-2 bg-[#FFF0F6] rounded-full shadow-inner">
+                <div
+                  className="h-full bg-[#F871A0] rounded-full shadow-sm transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                ></div>
               </div>
-            )}
-            
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
-                <Play size={16} />
-              </button>
-              <button className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
-                <Target size={16} />
-              </button>
             </div>
-          </div>
+          )}
+          
+          {isCompleted && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold text-green-700">Completed!</span>
+              </div>
+            </div>
+          )}
         </div>
-        
-        {hasProgress && (
-          <div className="mt-3">
-            <div className="w-full h-1.5 bg-gray-200 rounded-full">
-              <div
-                className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-white p-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading topics...</p>
+          <div className="w-16 h-16 border-4 border-[#A10089] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#6B7280] text-lg">Loading topics...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-8">
+    <div className="min-h-screen bg-white overflow-visible" style={{ overflow: 'visible' }}>
+      <div className="relative overflow-hidden bg-[#2E0059] text-white p-8 rounded-3xl mt-8 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/3 rounded-full"></div>
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/5 rounded-full"></div>
+        <div className="absolute top-10 right-10 w-2 h-2 bg-white/20 rounded-full"></div>
+        <div className="absolute top-20 right-16 w-1 h-1 bg-white/30 rounded-full"></div>
+        <div className="absolute bottom-16 left-20 w-1.5 h-1.5 bg-white/25 rounded-full"></div>
+        <div className="relative z-10">
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleBackButton}
             className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
           >
             <ArrowLeft size={24} />
           </button>
-          <div className="text-4xl">{categoryIcon}</div>
           <div>
             <h1 className="text-2xl font-bold">{categoryName}</h1>
-            <p className="text-purple-100">
+            <p className="text-white/90 font-medium">
               {subcategories.length} subcategories • Overall {Math.round(overallProgress)}% complete
             </p>
           </div>
         </div>
         
-        <div className="flex gap-4">
-          <div className="bg-white/20 rounded-2xl p-4 flex items-center gap-3">
-            <Target className="text-white" size={20} />
-            <div>
-              <p className="text-sm text-purple-100">Best Score</p>
-              <p className="text-lg font-bold">{bestScore}</p>
+        <div className="mt-6">
+          <p className="text-sm text-white/80 mb-2">Overall Progress</p>
+          <div className="flex items-center gap-3 max-w-md">
+            <div className="flex-1 h-3 bg-white/20 rounded-full">
+              <div
+                className="h-full bg-white rounded-full transition-all duration-300"
+                style={{ width: `${overallProgress}%` }}
+              ></div>
             </div>
+            <span className="text-lg font-bold text-white">{Math.round(overallProgress)}%</span>
           </div>
-          
-          <div className="bg-white/20 rounded-2xl p-4 flex items-center gap-3">
-            <Clock className="text-white" size={20} />
-            <div>
-              <p className="text-sm text-purple-100">Progress</p>
-              <p className="text-lg font-bold">{Math.round(overallProgress)}%</p>
-            </div>
-          </div>
+        </div>
         </div>
       </div>
 
-      <div className="p-8">
+      <div className="p-8 overflow-visible" style={{ overflow: 'visible' }}>
         {subcategories.map(subcategory => (
-          <div key={subcategory} className="mb-6">
+          <div key={subcategory} className="mb-12 overflow-visible" style={{ overflow: 'visible' }}>
             {renderSubcategoryHeader(subcategory)}
             
-            {expandedSubcategories[subcategory] && (
-              <div className="ml-4 space-y-2">
-                {(topicsBySubcategory[subcategory] || []).map(topic =>
-                  renderTopicItem(subcategory, topic)
-                )}
+            <div className={`overflow-visible transition-all duration-500 ease-in-out ${
+              expandedSubcategories[subcategory] 
+                ? 'max-h-[2000px] opacity-100' 
+                : 'max-h-0 opacity-0'
+            }`} style={{ overflow: expandedSubcategories[subcategory] ? 'visible' : 'hidden' }}>
+              <div className="ml-6 mt-6 space-y-6 pb-8 overflow-visible" style={{ overflow: 'visible' }}>
+                {(topicsBySubcategory[subcategory] || []).map((topic, index) => (
+                  <div
+                    key={topic}
+                    className={`transform transition-all duration-300 overflow-visible ${
+                      expandedSubcategories[subcategory]
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-4 opacity-0'
+                    }`}
+                    style={{ 
+                      transitionDelay: expandedSubcategories[subcategory] ? `${index * 100}ms` : '0ms',
+                      overflow: 'visible',
+                      zIndex: 1
+                    }}
+                  >
+                    {renderTopicItem(subcategory, topic)}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         ))}
       </div>

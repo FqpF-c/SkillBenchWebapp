@@ -7,12 +7,14 @@ import {
     runTransaction 
   } from 'firebase/firestore';
   import { db, DB_PATHS } from '../config/firebase';
+  import { firestorePaths } from '../db/paths';
+  import { collection, query, where, getDocs } from 'firebase/firestore';
   
   class FirestoreService {
-    async getUserData(phoneNumber) {
+    async getUserData(userId) {
       try {
-        console.log(`🔍 [FIRESTORE] Getting user data for phone: ${phoneNumber}`);
-        const userRef = doc(db, DB_PATHS.USERS, phoneNumber);
+        console.log(`🔍 [FIRESTORE] Getting user data for user ID: ${userId}`);
+        const userRef = doc(db, DB_PATHS.USERS, userId);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
@@ -20,7 +22,7 @@ import {
           console.log(`✅ [FIRESTORE] User data found:`, data);
           return data;
         } else {
-          console.log(`❌ [FIRESTORE] No user data found for phone: ${phoneNumber}`);
+          console.log(`❌ [FIRESTORE] No user data found for user ID: ${userId}`);
           return null;
         }
       } catch (error) {
@@ -29,13 +31,13 @@ import {
       }
     }
   
-    async registerUser(phoneNumber, userData) {
+    async registerUser(userId, userData) {
       try {
-        const firebaseUID = userData.firebaseUID || 'anonymous-user';
+        const firebaseUID = userData.firebaseUID || userId;
         
         const completeUserData = {
           username: userData.username || 'User',
-          phone_number: phoneNumber,
+          phone_number: userData.phoneNumber || '',
           college: userData.college || '',
           department: userData.department || '',
           batch: userData.batch || '',
@@ -52,7 +54,7 @@ import {
           total_usage: 0
         };
 
-        await setDoc(doc(db, DB_PATHS.USERS, phoneNumber), completeUserData);
+        await setDoc(doc(db, DB_PATHS.USERS, userId), completeUserData);
 
         console.log('User registered successfully in Firestore');
         
@@ -63,9 +65,9 @@ import {
       }
     }
   
-    async updateUserData(phoneNumber, userData) {
+    async updateUserData(userId, userData) {
       try {
-        const userRef = doc(db, DB_PATHS.USERS, phoneNumber);
+        const userRef = doc(db, DB_PATHS.USERS, userId);
         await updateDoc(userRef, {
           ...userData,
           last_login: serverTimestamp()
@@ -79,15 +81,61 @@ import {
         throw error;
       }
     }
-  
-    async checkUserExists(phoneNumber) {
+
+    async checkUserExists(userId) {
       try {
-        const userRef = doc(db, DB_PATHS.USERS, phoneNumber);
+        const userRef = doc(db, DB_PATHS.USERS, userId);
         const userSnap = await getDoc(userRef);
         return userSnap.exists();
       } catch (error) {
         console.error('Error checking user existence:', error);
         return false;
+      }
+    }
+
+    async findUserByPhoneNumber(phoneNumber) {
+      try {
+        console.log(`🔍 [FIRESTORE] Looking for existing user with phone: ${phoneNumber}`);
+        
+        // Query the skillbench/users/users collection for matching phone number
+        const usersCollectionRef = collection(db, 'skillbench/users/users');
+        const q = query(usersCollectionRef, where('phone_number', '==', phoneNumber));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          const userData = userDoc.data();
+          console.log(`✅ [FIRESTORE] Found existing user:`, userDoc.id);
+          return { 
+            exists: true, 
+            userId: userDoc.id, 
+            userData: userData 
+          };
+        } else {
+          console.log(`❌ [FIRESTORE] No existing user found with phone: ${phoneNumber}`);
+          return { exists: false, userId: null, userData: null };
+        }
+      } catch (error) {
+        console.error('Error finding user by phone number:', error);
+        return { exists: false, userId: null, userData: null };
+      }
+    }
+
+    async linkExistingUserToNewFirebaseUid(existingUserId, newFirebaseUid) {
+      try {
+        console.log(`🔗 [FIRESTORE] Linking existing user ${existingUserId} to new Firebase UID ${newFirebaseUid}`);
+        
+        const userRef = doc(db, DB_PATHS.USERS, existingUserId);
+        await updateDoc(userRef, {
+          current_firebase_uid: newFirebaseUid,
+          last_login: serverTimestamp()
+        });
+  
+        console.log('✅ [FIRESTORE] Successfully linked existing user to new Firebase UID');
+        return { success: true };
+      } catch (error) {
+        console.error('❌ [FIRESTORE] Error linking user to new Firebase UID:', error);
+        throw error;
       }
     }
 

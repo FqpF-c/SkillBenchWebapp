@@ -21,12 +21,11 @@ function App() {
   return (
     <AuthProvider>
       <AppProvider>
-        <Router>
+          <Router>
           <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              
               <Route path="/*" element={
                 <ProtectedRoute>
                   <Layout>
@@ -57,8 +56,8 @@ function App() {
               }}
             />
           </div>
-        </Router>
-      </AppProvider>
+          </Router>
+        </AppProvider>
     </AuthProvider>
   )
 }

@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { usePrepData } from '../hooks/usePrepData';
+import { useUserProgress } from '../hooks/useUserProgress';
 import { BookOpen, Play, ChevronRight, ArrowRight, Sun, CheckCircle, Trophy, Clock, Coins, Flame, Zap } from 'lucide-react';
 import CategoryGrid from '../components/CategoryGrid';
 import CategoryCard from '../components/CategoryCard';
+import OngoingPrograms from '../components/OngoingPrograms';
 
 // Import programming language icons
 import cIcon from '../assets/home_page/c.png';
@@ -31,6 +33,7 @@ const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { prepData, loading, error } = usePrepData();
+  const { ongoingPrograms, loading: progressLoading } = useUserProgress();
   const [greeting, setGreeting] = useState('');
   const [stats, setStats] = useState({
     completed: 0,
@@ -371,37 +374,58 @@ const Home = () => {
     </motion.div>
   );
 
-  // Stats Box Component
+  // Enhanced Stats Box Component with Glassmorphism
   const StatsBox = () => {
-    const StatsSkeleton = () => (
-      <div className="flex justify-evenly items-center">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex flex-col items-center">
-            <div className="w-6 h-6 bg-white bg-opacity-30 rounded animate-pulse mb-2"></div>
-            <div className="w-16 h-3 bg-white bg-opacity-30 rounded animate-pulse mb-1"></div>
-            <div className="w-12 h-6 bg-white bg-opacity-30 rounded animate-pulse"></div>
-          </div>
-        ))}
-      </div>
-    );
+    const AnimatedNumber = ({ value, suffix = "" }) => {
+      const [displayValue, setDisplayValue] = useState(0);
+      
+      useEffect(() => {
+        if (value === 0) return;
+        let start = 0;
+        const end = parseInt(value);
+        if (start === end) return;
+        
+        let totalMiliseconds = 1500;
+        let incrementTime = (totalMiliseconds / end) > 50 ? 50 : totalMiliseconds / end;
+        
+        let timer = setInterval(() => {
+          start += Math.ceil(end / 30);
+          if (start >= end) {
+            clearInterval(timer);
+            setDisplayValue(end);
+          } else {
+            setDisplayValue(start);
+          }
+        }, incrementTime);
+        
+        return () => clearInterval(timer);
+      }, [value]);
+      
+      return <span>{displayValue}{suffix}</span>;
+    };
 
     if (statsLoading) return (
       <motion.div 
-        className="px-4 mt-8"
+        className="mx-4 mb-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
-        <div className="bg-gradient-to-r from-white via-gray-50/30 to-white rounded-3xl border border-gray-100 p-6 shadow-lg shadow-gray-200/20 backdrop-blur-sm animate-pulse">
-          <div className="grid grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-12 h-7 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg mx-auto mb-2"></div>
+        <div className="bg-white/60 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-2xl shadow-purple-500/10 animate-pulse">
+          <div className="flex justify-between items-center">
+            <div className="flex-1 text-center">
+              <div className="w-16 h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg mx-auto mb-2"></div>
+              <div className="w-20 h-3 bg-gray-200 rounded-full mx-auto"></div>
+            </div>
+            <div className="w-px h-12 bg-gray-200 mx-4"></div>
+            <div className="flex-1 text-center">
+              <div className="w-12 h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg mx-auto mb-2"></div>
               <div className="w-16 h-3 bg-gray-200 rounded-full mx-auto"></div>
             </div>
-            <div className="text-center border-x border-gray-100">
-              <div className="w-12 h-7 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg mx-auto mb-2"></div>
-              <div className="w-12 h-3 bg-gray-200 rounded-full mx-auto"></div>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-7 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg mx-auto mb-2"></div>
-              <div className="w-20 h-3 bg-gray-200 rounded-full mx-auto"></div>
+            <div className="w-px h-12 bg-gray-200 mx-4"></div>
+            <div className="flex-1 text-center">
+              <div className="w-14 h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg mx-auto mb-2"></div>
+              <div className="w-24 h-3 bg-gray-200 rounded-full mx-auto"></div>
             </div>
           </div>
         </div>
@@ -410,36 +434,84 @@ const Home = () => {
 
     return (
       <motion.div 
-        className="px-4 mt-8"
+        className="mx-2 sm:mx-4 mb-4 sm:mb-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
       >
-        <div className="bg-gradient-to-r from-white via-gray-50/30 to-white rounded-3xl border border-gray-100 p-6 shadow-lg shadow-gray-200/20 backdrop-blur-sm">
-          <div className="grid grid-cols-3 gap-6">
+        <div className="bg-white/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 sm:p-6 shadow-2xl shadow-purple-500/10 hover:shadow-purple-500/15 transition-all duration-500">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
             <motion.div 
-              className="text-center group cursor-pointer"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              className="flex-1 text-center group cursor-pointer"
+              whileHover={{ scale: 1.05, y: -2 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <div className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-1">{stats.completed}</div>
-              <div className="text-xs font-medium text-gray-600 tracking-wide uppercase">Completed</div>
+              <motion.div 
+                className="flex items-center justify-center gap-2 mb-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-green-400/20 to-emerald-600/20 border border-green-400/30">
+                  <CheckCircle size={16} className="text-emerald-600" />
+                </div>
+                <div className="text-3xl font-black bg-gradient-to-r from-emerald-600 via-green-500 to-teal-500 bg-clip-text text-transparent">
+                  <AnimatedNumber value={stats.completed} />
+                </div>
+              </motion.div>
+              <div className="text-xs font-semibold text-gray-600 tracking-wider uppercase opacity-75 group-hover:opacity-100 transition-opacity">
+                Completed
+              </div>
             </motion.div>
+
+            <div className="w-px h-16 bg-gradient-to-b from-transparent via-gray-300 to-transparent hidden sm:block"></div>
+
             <motion.div 
-              className="text-center group cursor-pointer border-x border-gray-100"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              className="flex-1 text-center group cursor-pointer"
+              whileHover={{ scale: 1.05, y: -2 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <div className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-1">#{stats.rankPosition}</div>
-              <div className="text-xs font-medium text-gray-600 tracking-wide uppercase">Rank</div>
+              <motion.div 
+                className="flex items-center justify-center gap-2 mb-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-yellow-400/20 to-orange-600/20 border border-yellow-400/30">
+                  <Trophy size={16} className="text-orange-600" />
+                </div>
+                <div className="text-3xl font-black bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 bg-clip-text text-transparent">
+                  #<AnimatedNumber value={stats.rankPosition} />
+                </div>
+              </motion.div>
+              <div className="text-xs font-semibold text-gray-600 tracking-wider uppercase opacity-75 group-hover:opacity-100 transition-opacity">
+                Rank
+              </div>
             </motion.div>
+
+            <div className="w-px h-16 bg-gradient-to-b from-transparent via-gray-300 to-transparent hidden sm:block"></div>
+
             <motion.div 
-              className="text-center group cursor-pointer"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              className="flex-1 text-center group cursor-pointer"
+              whileHover={{ scale: 1.05, y: -2 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <div className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-1">{stats.studyHours}h</div>
-              <div className="text-xs font-medium text-gray-600 tracking-wide uppercase">Study Time</div>
+              <motion.div 
+                className="flex items-center justify-center gap-2 mb-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-400/20 to-purple-600/20 border border-blue-400/30">
+                  <Clock size={16} className="text-purple-600" />
+                </div>
+                <div className="text-3xl font-black bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
+                  <AnimatedNumber value={stats.studyHours} suffix="h" />
+                </div>
+              </motion.div>
+              <div className="text-xs font-semibold text-gray-600 tracking-wider uppercase opacity-75 group-hover:opacity-100 transition-opacity">
+                Study Time
+              </div>
             </motion.div>
           </div>
         </div>
@@ -456,7 +528,8 @@ const Home = () => {
     return (
       <motion.div 
         key={categoryName} 
-        className="mb-8"
+        className="mb-8 overflow-visible"
+        style={{ overflow: 'visible' }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -475,8 +548,8 @@ const Home = () => {
           </button>
         </div>
 
-        <div className="px-4 pb-8">
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+        <div className="px-4 pb-8 pt-4 overflow-visible">
+          <div className="flex flex-wrap justify-start gap-4 overflow-visible" style={{ overflow: 'visible' }}>
                          {displayItems.map((item, index) => {
                const name = item.name || 'Unknown';
                console.log('Processing item:', name, 'in category:', categoryName);
@@ -501,19 +574,27 @@ const Home = () => {
                return (
                  <motion.div 
                    key={index} 
-                   initial={{ opacity: 0, y: 20, scale: 0.9 }} 
+                   className="overflow-visible flex-shrink-0"
+                   style={{ 
+                     overflow: 'visible', 
+                     zIndex: 1,
+                     width: '160px',
+                     height: '180px',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center'
+                   }}
+                   initial={{ opacity: 0, y: 30, scale: 0.8 }} 
                    animate={{ opacity: 1, y: 0, scale: 1 }} 
                    transition={{ 
                      delay: index * 0.1, 
-                     duration: 0.5,
+                     duration: 0.6,
                      type: "spring",
-                     stiffness: 100,
-                     damping: 15
+                     stiffness: 150,
+                     damping: 20,
+                     ease: "easeOut"
                    }}
-                   whileHover={{ 
-                     y: -8,
-                     transition: { duration: 0.2 }
-                   }}
+                   whileTap={{ scale: 0.95 }}
                  >
                    <CategoryCard
                      title={getDisplayName(name)}
@@ -625,19 +706,25 @@ const Home = () => {
   });
 
   return (
-    <div className="min-h-screen bg-white pt-20">
-      <WelcomeHeader />
+    <div className="min-h-screen w-full bg-gradient-to-br from-pink-50/40 via-white to-pink-50/25 pt-16 sm:pt-20 overflow-visible" style={{ overflow: 'visible' }}>
+      <div className="px-4">
+        <WelcomeHeader />
+      </div>
       <StatsBox />
       
       <motion.div 
-        className="px-4 pb-24 mt-8"
+        className="px-2 sm:px-4 pb-32 mt-4 sm:mt-8 overflow-visible"
+        style={{ overflow: 'visible' }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
       >
 
+        {/* Ongoing Programs Section */}
+        <OngoingPrograms programs={ongoingPrograms} loading={progressLoading} />
+
         {/* Technologies Widget & Programming Languages */}
-        <div className="space-y-12">
+        <div className="space-y-6">
           {displayCategories.length > 0 ? (
             displayCategories.map(renderCategorySection)
           ) : (

@@ -2,11 +2,12 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, GraduationCap, Trophy, User } from 'lucide-react';
 
-const BottomNav = () => {
+const BottomNav = ({ currentIndex = 0, onChange, items }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const tabs = [
+  // Use provided items or default tabs
+  const tabs = items || [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'academics', label: 'Academics', icon: GraduationCap, path: '/academics' },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
@@ -16,25 +17,31 @@ const BottomNav = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-primary gradient-purple shadow-lg border-t border-primary-light">
-      <div className="max-w-md mx-auto">
-        <div className="flex justify-around items-center py-2">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+      <div className="pointer-events-auto">
+        <div className="flex items-center gap-2 bg-white/90 backdrop-blur-xl border border-white/30 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-2xl px-3 py-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = isActive(tab.path);
-            
+
             return (
               <button
                 key={tab.id}
-                onClick={() => navigate(tab.path)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200 ${
+                onClick={() => {
+                  if (onChange) {
+                    onChange(tabs.indexOf(tab));
+                  } else {
+                    navigate(tab.path);
+                  }
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 ${
                   active
-                    ? 'bg-secondary text-white shadow-lg transform scale-105'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-primary/80 hover:bg-black/5'
                 }`}
               >
-                <Icon size={20} className="mb-1" />
-                <span className="text-xs font-medium">{tab.label}</span>
+                <Icon size={18} />
+                <span className="text-sm font-medium hidden sm:inline">{tab.label}</span>
               </button>
             );
           })}

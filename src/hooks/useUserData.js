@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useUid } from '../auth/UidProvider';
 import FirebaseService from '../services/firebaseService';
 
 const useUserData = () => {
   const { user } = useAuth();
+  const { uid: centralizedUid, getUidOrThrow } = useUid();
   const [userStats, setUserStats] = useState({
     xp: 0,
     coins: 0,
@@ -19,9 +21,10 @@ const useUserData = () => {
   const loadUserData = useCallback(async () => {
     console.log('🔄 [useUserData] Starting to load user data...');
     console.log('🔄 [useUserData] Current user:', user);
+    console.log('🔄 [useUserData] Centralized UID:', centralizedUid);
     
-    if (!user) {
-      console.log('❌ [useUserData] No user found, setting loading to false');
+    if (!user || !centralizedUid) {
+      console.log('❌ [useUserData] No user or UID found, setting loading to false');
       setLoading(false);
       return;
     }
@@ -44,11 +47,11 @@ const useUserData = () => {
       }
       
       console.log('🔍 [useUserData] Attempting to get user data with:');
-      console.log('  - UID:', user.uid);
+      console.log('  - UID:', centralizedUid);
       console.log('  - Phone Number:', phoneNumberToUse);
       
       const userData = await FirebaseService.getUserData(
-        user.uid, // Firebase UID for Realtime Database
+        centralizedUid, // Firebase UID for Realtime Database
         phoneNumberToUse || null // Phone number for Firestore (might be null)
       );
 
@@ -75,28 +78,15 @@ const useUserData = () => {
       console.log('✅ [useUserData] Finished loading user data');
       setLoading(false);
     }
-  }, [user]);
+  }, [user, centralizedUid]);
 
   const updateUserStats = useCallback(async (updates) => {
-    if (!user?.uid) {
-      console.error('❌ [useUserData] No user UID available for stats update');
-      return { success: false, error: 'No user UID available' };
-    }
-
     try {
+      const uid = await getUidOrThrow();
       console.log('🔄 [useUserData] Updating user stats:', updates);
+      console.log('🔍 [useUserData] Using centralized UID:', uid);
       
-      // Get the current_firebase_uid from user details if available
-      let uidToUse = user.uid; // fallback to Auth UID
-      
-      if (userDetails && userDetails.current_firebase_uid) {
-        uidToUse = userDetails.current_firebase_uid;
-        console.log('🔍 [useUserData] Using current_firebase_uid from user details:', uidToUse);
-      } else {
-        console.log('🔍 [useUserData] Using Auth UID as fallback:', uidToUse);
-      }
-      
-      const result = await FirebaseService.updateUserStatsByUid(uidToUse, updates);
+      const result = await FirebaseService.updateUserStatsByUid(uid, updates);
       
       if (result.success) {
         console.log('✅ [useUserData] Stats updated successfully, updating local state');
@@ -111,7 +101,7 @@ const useUserData = () => {
       console.error('❌ [useUserData] Error updating user stats:', err);
       return { success: false, error: err.message };
     }
-  }, [user?.uid, userDetails]);
+  }, [getUidOrThrow]);
 
   useEffect(() => {
     console.log('🔄 [useUserData] useEffect triggered, user changed:', user);

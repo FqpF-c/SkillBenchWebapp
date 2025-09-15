@@ -1,12 +1,13 @@
 import { ref, get, set, update, child } from 'firebase/database';
 import { realtimeDb, DB_PATHS } from '../config/firebase';
+import { realtimePaths, generateTopicProgressId } from '../db/paths';
 
 class FirebaseRealtimeService {
   async getUserData(firebaseUid) {
     try {
       console.log('🔍 [REALTIME] Getting user data for Firebase UID:', firebaseUid);
       
-      const userRef = ref(realtimeDb, `${DB_PATHS.REALTIME_USERS}/${firebaseUid}`);
+      const userRef = ref(realtimeDb, realtimePaths.userRoot(firebaseUid));
       const snapshot = await get(userRef);
       
       if (snapshot.exists()) {
@@ -46,7 +47,7 @@ class FirebaseRealtimeService {
     try {
       console.log('💾 [REALTIME] Setting user data for Firebase UID:', firebaseUid);
       
-      const userRef = ref(realtimeDb, `${DB_PATHS.REALTIME_USERS}/${firebaseUid}`);
+      const userRef = ref(realtimeDb, realtimePaths.userRoot(firebaseUid));
       
       const dataToSave = {
         xp: userData.xp || 20,
@@ -71,7 +72,7 @@ class FirebaseRealtimeService {
     try {
       console.log('🔄 [REALTIME] Updating user data for Firebase UID:', firebaseUid);
       
-      const userRef = ref(realtimeDb, `${DB_PATHS.REALTIME_USERS}/${firebaseUid}`);
+      const userRef = ref(realtimeDb, realtimePaths.userRoot(firebaseUid));
       await update(userRef, {
         ...userData,
         last_login: Date.now()
@@ -89,7 +90,7 @@ class FirebaseRealtimeService {
     try {
       console.log('📊 [REALTIME] Updating user stats for Firebase UID:', firebaseUid);
       
-      const userRef = ref(realtimeDb, `${DB_PATHS.REALTIME_USERS}/${firebaseUid}`);
+      const userRef = ref(realtimeDb, realtimePaths.userRoot(firebaseUid));
       await update(userRef, {
         ...stats,
         last_login: Date.now()
@@ -107,7 +108,7 @@ class FirebaseRealtimeService {
     try {
       console.log('🔍 [REALTIME] Checking if user exists for Firebase UID:', firebaseUid);
       
-      const userRef = ref(realtimeDb, `${DB_PATHS.REALTIME_USERS}/${firebaseUid}`);
+      const userRef = ref(realtimeDb, realtimePaths.userRoot(firebaseUid));
       const snapshot = await get(userRef);
       const exists = snapshot.exists();
       
@@ -123,7 +124,7 @@ class FirebaseRealtimeService {
     try {
       console.log('📈 [REALTIME] Getting progress data for Firebase UID:', firebaseUid);
       
-      const progressRef = ref(realtimeDb, `${DB_PATHS.REALTIME_PROGRESS}/${firebaseUid}`);
+      const progressRef = ref(realtimeDb, realtimePaths.userProgress(firebaseUid));
       const snapshot = await get(progressRef);
       
       if (snapshot.exists()) {
@@ -144,7 +145,7 @@ class FirebaseRealtimeService {
     try {
       console.log('📊 [REALTIME] Updating progress for UID:', firebaseUid, 'Topic:', topicId);
       
-      const progressRef = ref(realtimeDb, `${DB_PATHS.REALTIME_PROGRESS}/${firebaseUid}/${topicId}`);
+      const progressRef = ref(realtimeDb, realtimePaths.userProgressSubject(firebaseUid, topicId));
       await set(progressRef, {
         ...progressData,
         lastUpdated: Date.now()
@@ -162,7 +163,7 @@ class FirebaseRealtimeService {
     try {
       console.log('📈 [REALTIME] Getting topic progress for UID:', firebaseUid, 'Topic:', topicId);
       
-      const progressRef = ref(realtimeDb, `${DB_PATHS.REALTIME_PROGRESS}/${firebaseUid}/${topicId}`);
+      const progressRef = ref(realtimeDb, realtimePaths.userProgressSubject(firebaseUid, topicId));
       const snapshot = await get(progressRef);
       
       if (snapshot.exists()) {
@@ -181,7 +182,7 @@ class FirebaseRealtimeService {
 
   async updateTopicProgress(firebaseUid, categoryId, subcategory, topic, progressData) {
     try {
-      const topicId = this.generateTopicProgressId(categoryId, subcategory, topic);
+      const topicId = generateTopicProgressId(categoryId, subcategory, topic);
       console.log('📊 [REALTIME] Generated topic ID:', topicId);
       return await this.updateProgressData(firebaseUid, topicId, progressData);
     } catch (error) {
@@ -191,20 +192,7 @@ class FirebaseRealtimeService {
   }
 
   generateTopicProgressId(categoryId, subcategory, topic) {
-    const normalizeString = (str) => {
-      return str
-        .toLowerCase()
-        .replace(/\s+/g, '')
-        .replace(/[^a-zA-Z0-9]/g, '');
-    };
-
-    const normalizedCategory = normalizeString(categoryId);
-    const normalizedSubcategory = normalizeString(subcategory);
-    const normalizedTopic = normalizeString(topic);
-
-    const topicId = `${normalizedCategory}_${normalizedSubcategory}_${normalizedTopic}`;
-    console.log('🏷️ [REALTIME] Generated topic ID:', topicId);
-    return topicId;
+    return generateTopicProgressId(categoryId, subcategory, topic);
   }
 }
 

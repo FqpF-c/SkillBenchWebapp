@@ -34,4 +34,22 @@ body {
   .container-padding {
     @apply px-6 py-4;
   }
+  
+  /* Additional utility classes */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .stat-pill {
+    @apply bg-white/10 backdrop-blur-sm px-3 py-2 rounded-xl flex items-center gap-2;
+  }
+  
+  .bg-background {
+    background-color: #FDFBFF;
+  }
 }
