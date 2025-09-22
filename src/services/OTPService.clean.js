@@ -21,19 +21,11 @@ class OTPService {
   validatePhoneNumber(phoneNumber) {
     if (!phoneNumber) return false;
 
-    // Remove all non-digits (handles +91, spaces, dashes, etc.)
+    // Remove all non-digits
     const cleanPhone = phoneNumber.replace(/\D/g, '');
 
-    // Handle both 10-digit (without country code) and 12-digit (with +91) numbers
-    if (cleanPhone.length === 10) {
-      return /^\d{10}$/.test(cleanPhone);
-    } else if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-      // Extract the 10-digit number after removing 91
-      const phoneWithoutCountryCode = cleanPhone.substring(2);
-      return /^\d{10}$/.test(phoneWithoutCountryCode);
-    }
-
-    return false;
+    // Should be exactly 10 digits
+    return cleanPhone.length === 10 && /^\d{10}$/.test(cleanPhone);
   }
 
   /**
@@ -42,21 +34,7 @@ class OTPService {
    * @returns {string} - Clean 10-digit phone number
    */
   formatPhoneNumber(phoneNumber) {
-    // Remove all non-digits
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-
-    // If it's 12 digits starting with 91, remove the country code
-    if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
-      return cleanPhone.substring(2);
-    }
-
-    // If it's 10 digits, return as is
-    if (cleanPhone.length === 10) {
-      return cleanPhone;
-    }
-
-    // Return the cleaned phone as-is for other cases
-    return cleanPhone;
+    return phoneNumber.replace(/\D/g, '');
   }
 
   /**
@@ -151,10 +129,6 @@ class OTPService {
       // Format phone number
       const cleanPhone = this.formatPhoneNumber(phoneNumber);
       const formattedPhone = this.formatPhoneNumberWithCountryCode(cleanPhone);
-
-      // Debug: Show phone number processing
-      console.log('[OTP] Clean phone number:', cleanPhone);
-      console.log('[OTP] Formatted phone number:', formattedPhone);
 
       // Make request to backend
       const response = await fetch(`${APP_URL}/send-otp`, {

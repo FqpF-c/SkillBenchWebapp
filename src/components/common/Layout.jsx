@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BottomNav from './BottomNav.jsx';
-import { 
-  BookOpen, 
-  Sun, 
-  Trophy, 
+import PageTransition from './PageTransition.jsx';
+import {
+  BookOpen,
+  Sun,
+  Trophy,
   Users
 } from 'lucide-react';
 
@@ -44,10 +45,12 @@ const Layout = ({ children }) => {
     <div className="min-h-screen bg-gradient-to-br from-pink-100/50 via-pink-50/20 to-white">
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-screen-xl mx-auto">
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </div>
       </main>
-      
+
       {/* Bottom Navigation - Show on all pages except quiz pages and list topics */}
       {!isQuizPage && !isListTopicsPage && (
         <BottomNav />

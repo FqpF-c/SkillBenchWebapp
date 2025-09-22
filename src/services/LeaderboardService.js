@@ -61,7 +61,7 @@ class LeaderboardService {
     try {
       console.log('🔍 [LEADERBOARD] Fetching leaderboard data as per documentation...');
 
-      // Step 1: Calculate XP for all users from quiz sessions (as per doc)
+      // Step 1: Calculate XP for all users from Realtime Database
       const userXPMap = await this._calculateAllUsersXP(timeframe);
       console.log(`💯 [LEADERBOARD] Calculated XP for ${Object.keys(userXPMap).length} users`);
 
@@ -79,14 +79,14 @@ class LeaderboardService {
       // Step 2: Fetch user profiles from Firestore in batches (max 10 per batch as per doc)
       const userIds = Object.keys(userXPMap);
       const userProfiles = await this._fetchUserProfilesInBatches(userIds);
-      console.log(`👥 [LEADERBOARD] Fetched profiles for ${Object.keys(userProfiles).length} users`);
+      console.log(`👥 [LEADERBOARD] Fetched profiles for ${Object.keys(userProfiles).length} users from Firestore`);
 
-      // Step 3: Create leaderboard users by merging XP data with profiles
+      // Step 3: Create leaderboard users by merging XP data with Firestore profiles
       const leaderboardUsers = [];
-      
+
       for (const [userId, xp] of Object.entries(userXPMap)) {
         const profile = userProfiles[userId] || {};
-        
+
         leaderboardUsers.push({
           id: userId,
           username: profile.username || profile.name || 'Anonymous',
@@ -95,8 +95,11 @@ class LeaderboardService {
           department: profile.department || profile.course || profile.major || '',
           batch: profile.batch || '',
           profile_image: profile.photoURL || profile.profileImage || profile.avatar || null,
-          lastActiveAt: profile.lastSeen || profile.last_login || profile.lastActiveAt,
-          isOnline: this._isUserOnline(profile.lastSeen || profile.last_login),
+          lastActiveAt: profile.last_login || profile.lastSeen || profile.lastActiveAt,
+          isOnline: this._isUserOnline(profile.last_login || profile.lastSeen),
+          email: profile.email || '',
+          phone_number: profile.phone_number || '',
+          gender: profile.gender || '',
           ...profile
         });
       }
@@ -132,12 +135,12 @@ class LeaderboardService {
 
   /**
    * Get XP for all users directly from Realtime Database user records
-   * Fetches from: /users/{userId} -> xp field
+   * Fetches from: /skillbench/users/{userId} -> xp field
    */
   async _calculateAllUsersXP(timeframe) {
     try {
       console.log('🧮 [LEADERBOARD] Fetching XP from user records in Realtime Database...');
-      
+
       // Fetch all users from Firebase Realtime Database
       const usersRef = ref(realtimeDb, 'skillbench/users');
       const snapshot = await get(usersRef);
@@ -154,7 +157,7 @@ class LeaderboardService {
       Object.entries(allUsers).forEach(([userId, userData]) => {
         if (userData && userData.xp != null) {
           const userXP = parseInt(userData.xp) || 0;
-          
+
           // Only include users with XP > 0
           if (userXP > 0) {
             userXPMap[userId] = userXP;
@@ -169,6 +172,48 @@ class LeaderboardService {
       console.error('❌ [LEADERBOARD] Error fetching XP from user records:', error);
       return {};
     }
+  }
+
+  /**
+   * Fetch user profiles from Firestore in batches (max 10 per batch as per doc)
+   * Uses the correct Firestore path: skillbench/users/users/{firebase_uid}
+   */
+  async _fetchUserProfilesInBatches(userIds) {
+    const profiles = {};
+    const batchSize = 10; // As per documentation
+
+    try {
+      for (let i = 0; i < userIds.length; i += batchSize) {
+        const batch = userIds.slice(i, i + batchSize);
+        console.log(`👥 [LEADERBOARD] Fetching batch ${Math.floor(i/batchSize) + 1}: ${batch.length} users from Firestore`);
+
+        // Fetch profiles for this batch using correct Firestore path
+        const batchPromises = batch.map(async (userId) => {
+          try {
+            const userDoc = await getDocs(query(collection(db, 'skillbench/users/users'), where('__name__', '==', userId)));
+            if (!userDoc.empty) {
+              const userData = userDoc.docs[0].data();
+              console.log(`✅ [LEADERBOARD] Found profile for ${userId}: ${userData.username || userData.name || 'Anonymous'}`);
+              return { [userId]: userData };
+            }
+            console.log(`⚠️ [LEADERBOARD] No Firestore profile found for ${userId}`);
+            return { [userId]: null };
+          } catch (error) {
+            console.warn(`⚠️ [LEADERBOARD] Error fetching profile for ${userId}:`, error);
+            return { [userId]: null };
+          }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(result => {
+          Object.assign(profiles, result);
+        });
+      }
+    } catch (error) {
+      console.error('❌ [LEADERBOARD] Error fetching user profiles:', error);
+    }
+
+    return profiles;
   }
 
   /**
@@ -204,43 +249,6 @@ class LeaderboardService {
     }
   }
 
-  /**
-   * Fetch user profiles from Firestore in batches (max 10 per batch as per doc)
-   */
-  async _fetchUserProfilesInBatches(userIds) {
-    const profiles = {};
-    const batchSize = 10; // As per documentation
-    
-    try {
-      for (let i = 0; i < userIds.length; i += batchSize) {
-        const batch = userIds.slice(i, i + batchSize);
-        console.log(`👥 [LEADERBOARD] Fetching batch ${Math.floor(i/batchSize) + 1}: ${batch.length} users`);
-        
-        // Fetch profiles for this batch
-        const batchPromises = batch.map(async (userId) => {
-          try {
-            const userDoc = await getDocs(query(collection(db, this.usersCollection), where('__name__', '==', userId)));
-            if (!userDoc.empty) {
-              return { [userId]: userDoc.docs[0].data() };
-            }
-            return { [userId]: null };
-          } catch (error) {
-            console.warn(`⚠️ [LEADERBOARD] Error fetching profile for ${userId}:`, error);
-            return { [userId]: null };
-          }
-        });
-        
-        const batchResults = await Promise.all(batchPromises);
-        batchResults.forEach(result => {
-          Object.assign(profiles, result);
-        });
-      }
-    } catch (error) {
-      console.error('❌ [LEADERBOARD] Error fetching user profiles:', error);
-    }
-    
-    return profiles;
-  }
 
   /**
    * Check if user is online (last seen < 15 minutes as per doc)

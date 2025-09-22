@@ -123,31 +123,110 @@ class AuthService {
       const cleanPhone = phoneNumber.replace('+91', '');
       const email = `${cleanPhone}@skillbench.temp`;
       const password = `temp_${cleanPhone}`;
-      
+
+      console.log('[AUTH] Starting registration for phone:', phoneNumber);
+      console.log('[AUTH] Generated email:', email);
+
+      // First check if this phone number already has a UID mapping
+      const existingUID = await this.getUidByPhoneNumber(phoneNumber);
+      console.log('[AUTH] Phone-to-UID mapping check result:', existingUID);
+
+      // Also check if Firebase Auth account exists
+      const existingAuthUser = await this.checkAuthAccountExists(phoneNumber);
+      console.log('[AUTH] Firebase Auth account check result:', existingAuthUser?.uid || 'none');
+
+      if (existingUID) {
+        console.log('[AUTH] User already exists with UID:', existingUID);
+
+        try {
+          // Sign in the existing user and update their profile
+          await this.signInWithExistingUID(existingUID, phoneNumber);
+
+          // Update their profile data if they're completing registration
+          await this.createUserDocument(existingUID, userData);
+
+          console.log('[AUTH] Existing user signed in and updated');
+          return { uid: existingUID };
+        } catch (signInError) {
+          console.error('[AUTH] Error signing in existing user:', signInError);
+          // If sign in fails, we might have an orphaned mapping, continue with new registration
+        }
+      }
+
+      // If Firebase Auth account exists but no UID mapping, create the mapping
+      if (existingAuthUser && !existingUID) {
+        console.log('[AUTH] Found orphaned Firebase Auth account, creating UID mapping');
+        try {
+          // Create the missing phone-to-UID mapping
+          await this.createPhoneToUidMapping(phoneNumber, existingAuthUser.uid);
+
+          // Update user document with registration data
+          await this.createUserDocument(existingAuthUser.uid, userData);
+
+          // Initialize stats if needed
+          await this.initializeUserStats(existingAuthUser.uid, userData);
+
+          console.log('[AUTH] Orphaned account recovered and updated');
+          return existingAuthUser;
+        } catch (recoveryError) {
+          console.error('[AUTH] Error recovering orphaned account:', recoveryError);
+          throw new Error('Account exists but could not be recovered. Please contact support.');
+        }
+      }
+
       console.log('[AUTH] Creating Firebase Auth account for new user');
-      
+
       // Create Firebase Auth account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
+
       console.log('[AUTH] Firebase Auth account created with UID:', user.uid);
-      
+
       // Update display name
       await updateProfile(user, { displayName: phoneNumber });
-      
+
       // Create phone-to-UID mapping
       await this.createPhoneToUidMapping(phoneNumber, user.uid);
-      
+
       // Create user document in Firestore
       await this.createUserDocument(user.uid, userData);
-      
+
       // Initialize user stats in Realtime Database
       await this.initializeUserStats(user.uid, userData);
-      
+
       console.log('[AUTH] User registration completed successfully');
       return user;
     } catch (error) {
       console.error('[AUTH] Error registering user:', error);
+
+      // If email already exists, try to handle it gracefully
+      if (error.code === 'auth/email-already-in-use') {
+        console.log('[AUTH] Email already in use, attempting to sign in instead');
+        try {
+          const cleanPhone = userData.phoneNumber.replace('+91', '');
+          const email = `${cleanPhone}@skillbench.temp`;
+          const password = `temp_${cleanPhone}`;
+
+          // Try to sign in with existing credentials
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          console.log('[AUTH] Successfully signed in existing user with UID:', user.uid);
+
+          // Create or update phone-to-UID mapping (in case it's missing)
+          await this.createPhoneToUidMapping(userData.phoneNumber, user.uid);
+
+          // Update user document with latest registration data
+          await this.createUserDocument(user.uid, userData);
+
+          console.log('[AUTH] Existing user account updated with registration data');
+          return user;
+        } catch (signInError) {
+          console.error('[AUTH] Failed to sign in with existing email:', signInError);
+          throw new Error('Account exists but unable to access. Please contact support.');
+        }
+      }
+
       throw error;
     }
   }
@@ -273,6 +352,30 @@ class AuthService {
       console.log('[AUTH] Last login timestamp updated');
     } catch (error) {
       console.error('[AUTH] Error updating last login:', error);
+    }
+  }
+
+  /**
+   * Check if Firebase Auth account exists for phone number
+   * @param {string} phoneNumber - Phone number in format +911234567890
+   */
+  async checkAuthAccountExists(phoneNumber) {
+    try {
+      const cleanPhone = phoneNumber.replace('+91', '');
+      const email = `${cleanPhone}@skillbench.temp`;
+      const password = `temp_${cleanPhone}`;
+
+      // Try to sign in to see if account exists
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('[AUTH] Firebase Auth account exists for phone:', phoneNumber);
+      return userCredential.user;
+    } catch (error) {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        console.log('[AUTH] No Firebase Auth account found for phone:', phoneNumber);
+        return null;
+      }
+      console.error('[AUTH] Error checking auth account:', error);
+      return null;
     }
   }
 

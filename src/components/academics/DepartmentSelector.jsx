@@ -130,23 +130,65 @@ const DepartmentSelector = ({ onSelectionChange }) => {
           {/* Department Dropdown */}
           <AnimatePresence>
             {isDepartmentOpen && !departmentsLoading && (
-              <motion.div 
+              <motion.div
                 className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl z-50 overflow-hidden"
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 30,
+                  duration: 0.3
+                }}
               >
                 {departments.length > 0 ? (
                   departments.map((dept, index) => (
                     <motion.button
                       key={index}
                       onClick={() => handleDepartmentSelect(dept)}
-                      className="w-full text-left px-4 py-3 hover:bg-purple-50/50 transition-colors border-b border-gray-100/50 last:border-b-0 group"
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2 }}
+                      className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/30 transition-all duration-300 border-b border-gray-100/50 last:border-b-0 group relative overflow-hidden"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        delay: index * 0.05,
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 25
+                      }}
+                      whileHover={{
+                        x: 6,
+                        transition: { duration: 0.2, ease: "easeOut" }
+                      }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <span className="text-gray-700 group-hover:text-purple-600 font-medium transition-colors">{dept}</span>
+                      {/* Hover background gradient */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0"
+                        whileHover={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                      />
+
+                      {/* Text with enhanced styling */}
+                      <motion.span
+                        className="relative z-10 text-gray-700 group-hover:text-purple-600 font-medium transition-colors duration-300"
+                        whileHover={{
+                          scale: 1.02,
+                          transition: { duration: 0.2 }
+                        }}
+                      >
+                        {dept}
+                      </motion.span>
+
+                      {/* Subtle arrow indicator */}
+                      <motion.div
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400 opacity-0 group-hover:opacity-100"
+                        initial={{ x: -10, opacity: 0 }}
+                        whileHover={{ x: 0, opacity: 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        →
+                      </motion.div>
                     </motion.button>
                   ))
                 ) : (

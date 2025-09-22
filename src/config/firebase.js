@@ -3,12 +3,25 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 
-// Ngrok configuration helper
+// Backend URL configuration helper
 const getAppUrl = () => {
+  // If backend is disabled, return null to trigger test mode
+  if (import.meta.env.VITE_DISABLE_BACKEND === 'true') {
+    console.log('🧪 Backend disabled, using test mode');
+    return null;
+  }
+
   if (import.meta.env.VITE_USE_NGROK === 'true' && import.meta.env.VITE_NGROK_URL) {
     console.log('🌐 Using ngrok URL:', import.meta.env.VITE_NGROK_URL);
     return import.meta.env.VITE_NGROK_URL;
   }
+
+  if (import.meta.env.VITE_BACKEND_URL) {
+    console.log('🌐 Using backend URL:', import.meta.env.VITE_BACKEND_URL);
+    return import.meta.env.VITE_BACKEND_URL;
+  }
+
+  console.warn('⚠️ No backend URL configured, falling back to window.location.origin');
   return window.location.origin;
 };
 

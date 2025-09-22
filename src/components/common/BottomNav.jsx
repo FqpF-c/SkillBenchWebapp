@@ -36,7 +36,7 @@ const BottomNav = ({ currentIndex = 0, onChange, items }) => {
                 }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 ${
                   active
-                    ? 'bg-primary text-white shadow-md'
+                    ? 'bg-purple-900 text-white shadow-md'
                     : 'text-primary/80 hover:bg-black/5'
                 }`}
               >

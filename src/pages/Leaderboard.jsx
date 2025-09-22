@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Star, School } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LeaderboardService from '../services/LeaderboardService';
 import ModernTop3View from '../components/leaderboard/ModernTop3View';
 import UserRankList from '../components/leaderboard/UserRankList';
 
 const Leaderboard = () => {
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const [leaderboardData, setLeaderboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,9 +38,9 @@ const Leaderboard = () => {
     fetchLeaderboardData();
   }, []);
 
-  // Get top 3 users and remaining users
+  // Get top 3 users and all users for the ranking list
   const topThreeUsers = leaderboardData?.users?.slice(0, 3) || [];
-  const remainingUsers = leaderboardData?.users?.slice(3) || [];
+  const allUsers = leaderboardData?.users || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 pt-16 sm:pt-20">
@@ -108,71 +109,61 @@ const Leaderboard = () => {
             </motion.div>
           )}
 
-          {/* Modern Top 3 View */}
+          {/* Modern Top 3 Podium View */}
           {(leaderboardData?.users?.length > 0 || isLoading) && (
-            <ModernTop3View
-              topUsers={topThreeUsers}
-              isLoading={isLoading}
-            />
+            (() => {
+              // Debug logging
+              console.log('🔍 [Leaderboard] Current user:', currentUser);
+              console.log('🔍 [Leaderboard] Current user UID:', currentUser?.uid);
+              console.log('🔍 [Leaderboard] Leaderboard data:', leaderboardData);
+              console.log('🔍 [Leaderboard] Leaderboard user IDs:', leaderboardData?.users?.map(u => ({ id: u.id, username: u.username })));
+              console.log('🔍 [Leaderboard] Is loading:', isLoading);
+
+              // Try different ID matching strategies
+              let currentUserData = null;
+              if (currentUser && leaderboardData && !isLoading) {
+                // Strategy 1: Direct UID match
+                currentUserData = LeaderboardService.getCurrentUserRank(leaderboardData.users, currentUser.uid);
+
+                // Strategy 2: If no match, try finding by currentFirebaseUid field
+                if (!currentUserData) {
+                  currentUserData = leaderboardData.users.find(user =>
+                    user.current_firebase_uid === currentUser.uid ||
+                    user.currentFirebaseUid === currentUser.uid
+                  ) || null;
+                }
+
+                console.log('🔍 [Leaderboard] User lookup result:', currentUserData);
+              }
+
+              console.log('🔍 [Leaderboard] Current user data result:', currentUserData);
+
+              return (
+                <ModernTop3View
+                  topUsers={topThreeUsers}
+                  currentUserData={currentUserData}
+                  isLoading={isLoading}
+                />
+              );
+            })()
           )}
 
-          {/* Remaining Users List (Rank 4+) */}
-          {remainingUsers.length > 0 && !isLoading && (
+          {/* All Users Ranking List (including top 3) */}
+          {(allUsers.length > 0 || isLoading) && (
             <motion.div
               className="mt-16 max-w-6xl mx-auto"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 1.2 }}
             >
-              <UserRankList 
-                users={remainingUsers}
+              <UserRankList
+                users={allUsers}
                 currentUserId={currentUser?.uid}
-                isLoading={false}
+                isLoading={isLoading}
               />
             </motion.div>
           )}
 
-          {/* Current User Achievement Banner (if not in top 3) */}
-          {currentUser && leaderboardData && !isLoading && (
-            (() => {
-              const currentUserData = LeaderboardService.getCurrentUserRank(leaderboardData.users, currentUser.uid);
-              const isInTop3 = currentUserData && currentUserData.rank <= 3;
-              
-              if (currentUserData && !isInTop3) {
-                return (
-                  <motion.div 
-                    className="mt-16 max-w-2xl mx-auto"
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 1.5 }}
-                  >
-                    <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border-2 border-purple-200/30 shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                          {currentUserData.username?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg font-bold text-gray-900">Your Current Rank</span>
-                            <div className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl text-sm font-bold">
-                              #{currentUserData.rank}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 text-gray-600">
-                            <span>{currentUserData.xp} XP</span>
-                            {currentUserData.rank <= 10 && (
-                              <span className="text-sm">• So close to the top!</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              }
-              return null;
-            })()
-          )}
         </motion.div>
       </div>
     </div>
