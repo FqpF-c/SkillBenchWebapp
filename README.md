@@ -1,4 +1,4 @@
-# SkillBench WebApp
+# SkillBench WebAp
 
 A comprehensive learning platform with Firebase authentication, real-time progress tracking, and interactive content management.
 
